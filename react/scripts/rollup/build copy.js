@@ -34,7 +34,7 @@ const __EXPERIMENTAL__ =
 
 // Errors in promises should be fatal.
 let loggedErrors = new Set();
-process.on('unhandledRejection', (err) => {
+process.on('unhandledRejection', err => {
   if (loggedErrors.has(err)) {
     // No need to print it twice.
     process.exit(1);
@@ -414,7 +414,7 @@ function getPlugins(
       getSize: (size, gzip) => {
         const currentSizes = Stats.currentBuildResults.bundleSizes;
         const recordIndex = currentSizes.findIndex(
-          (record) =>
+          record =>
             record.filename === filename && record.bundleType === bundleType
         );
         const index = recordIndex !== -1 ? recordIndex : currentSizes.length;
@@ -437,7 +437,7 @@ function shouldSkipBundle(bundle, bundleType) {
   }
   if (requestedBundleTypes.length > 0) {
     const isAskingForDifferentType = requestedBundleTypes.every(
-      (requestedType) => bundleType.indexOf(requestedType) === -1
+      requestedType => bundleType.indexOf(requestedType) === -1
     );
     if (isAskingForDifferentType) {
       return true;
@@ -450,7 +450,7 @@ function shouldSkipBundle(bundle, bundleType) {
     // search.
     const entryLowerCase = bundle.entry.toLowerCase() + '/index.js';
     const isAskingForDifferentNames = requestedBundleNames.every(
-      (requestedName) => {
+      requestedName => {
         const matchEntry = entryLowerCase.indexOf(requestedName) !== -1;
         if (!bundle.name) {
           return !matchEntry;
@@ -540,7 +540,7 @@ async function createBundle(bundle, bundleType) {
 
   const importSideEffects = Modules.getImportSideEffects();
   const pureExternalModules = Object.keys(importSideEffects).filter(
-    (module) => !importSideEffects[module]
+    module => !importSideEffects[module]
   );
 
   const rollupConfig = {
@@ -549,8 +549,7 @@ async function createBundle(bundle, bundleType) {
       pureExternalModules,
     },
     external(id) {
-      const containsThisModule = (pkg) =>
-        id === pkg || id.startsWith(pkg + '/');
+      const containsThisModule = pkg => id === pkg || id.startsWith(pkg + '/');
       const isProvidedByDependency = externals.some(containsThisModule);
       if (!shouldBundleDependencies && isProvidedByDependency) {
         if (id.indexOf('/src/') !== -1) {
@@ -604,7 +603,7 @@ async function createBundle(bundle, bundleType) {
   if (isWatchMode) {
     rollupConfig.output = [rollupOutputOptions];
     const watcher = rollup.watch(rollupConfig);
-    watcher.on('event', async (event) => {
+    watcher.on('event', async event => {
       switch (event.code) {
         case 'BUNDLE_START':
           console.log(`${chalk.bgYellow.black(' BUILDING ')} ${logKey}`);
@@ -714,7 +713,25 @@ async function buildEverything() {
   let bundles = [];
   // eslint-disable-next-line no-for-of-loops/no-for-of-loops
   for (const bundle of Bundles.bundles) {
-    bundles.push([bundle, UMD_DEV], [bundle, FB_WWW_DEV]);
+    bundles.push(
+      [bundle, NODE_ES2015],
+      [bundle, NODE_ESM],
+      [bundle, UMD_DEV],
+      [bundle, UMD_PROD],
+      [bundle, UMD_PROFILING],
+      [bundle, NODE_DEV],
+      [bundle, NODE_PROD],
+      [bundle, NODE_PROFILING],
+      [bundle, FB_WWW_DEV],
+      [bundle, FB_WWW_PROD],
+      [bundle, FB_WWW_PROFILING],
+      [bundle, RN_OSS_DEV],
+      [bundle, RN_OSS_PROD],
+      [bundle, RN_OSS_PROFILING],
+      [bundle, RN_FB_DEV],
+      [bundle, RN_FB_PROD],
+      [bundle, RN_FB_PROFILING]
+    );
   }
 
   if (process.env.CIRCLE_NODE_TOTAL) {

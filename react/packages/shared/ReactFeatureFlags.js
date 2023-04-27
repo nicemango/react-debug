@@ -73,7 +73,7 @@ export const enableCreateEventHandleAPI = false;
 
 // This controls whether you get the `.old` modules or the `.new` modules in
 // the react-reconciler package.
-export const enableNewReconciler = false;
+export const enableNewReconciler = true;
 
 // Support legacy Primer support on internal FB www
 export const enableLegacyFBSupport = false;

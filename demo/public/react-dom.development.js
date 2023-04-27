@@ -114,7 +114,7 @@
   var enableSuspenseCallback = false; // Experimental Scope support.
   // the react-reconciler package.
 
-  var enableNewReconciler = false; // Support legacy Primer support on internal FB www
+  var enableNewReconciler = true; // Support legacy Primer support on internal FB www
 
   var enableLazyContextPropagation = false; // FB-only usage. The new API has different semantics.
 

@@ -2,6 +2,7 @@
 
 const {bundleTypes, moduleTypes} = require('./bundles');
 const inlinedHostConfigs = require('../shared/inlinedHostConfigs');
+const {log} = require('console');
 
 const {
   UMD_DEV,
@@ -138,7 +139,7 @@ const forks = Object.freeze({
     return null;
   },
 
-  './packages/shared/ReactSymbols.js': bundleType => {
+  './packages/shared/ReactSymbols.js': (bundleType) => {
     switch (bundleType) {
       case FB_WWW_DEV:
       case FB_WWW_PROD:
@@ -248,6 +249,11 @@ const forks = Object.freeze({
     moduleType,
     bundle
   ) => {
+    log(
+      'zzh bundle.enableNewReconciler)',
+      bundle.enableNewReconciler,
+      bundleType
+    );
     if (bundle.enableNewReconciler) {
       switch (bundleType) {
         case FB_WWW_DEV:
@@ -258,7 +264,7 @@ const forks = Object.freeze({
       }
     }
     // Otherwise, use the non-forked version.
-    return './packages/react-reconciler/src/ReactFiberReconciler.old.js';
+    return './packages/react-reconciler/src/ReactFiberReconciler.new.js';
   },
 
   './packages/react-reconciler/src/ReactEventPriorities.js': (
@@ -278,7 +284,7 @@ const forks = Object.freeze({
       }
     }
     // Otherwise, use the non-forked version.
-    return './packages/react-reconciler/src/ReactEventPriorities.old.js';
+    return './packages/react-reconciler/src/ReactEventPriorities.new.js';
   },
 
   './packages/react-reconciler/src/ReactFiberHotReloading.js': (
@@ -298,7 +304,7 @@ const forks = Object.freeze({
       }
     }
     // Otherwise, use the non-forked version.
-    return './packages/react-reconciler/src/ReactFiberHotReloading.old.js';
+    return './packages/react-reconciler/src/ReactFiberHotReloading.new.js';
   },
 
   // Different dialogs for caught errors.
