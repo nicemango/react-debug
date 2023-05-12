@@ -117,6 +117,7 @@ if (__DEV__) {
   }
 }
 
+// 一个Fiber对象代表一个即将渲染或者已经渲染的组件(ReactElement), 一个组件可能对应两个fiber(current和WorkInProgress)
 function FiberNode(
   tag: WorkTag,
   pendingProps: mixed,
@@ -140,7 +141,7 @@ function FiberNode(
 
   this.pendingProps = pendingProps;
   this.memoizedProps = null;
-  this.updateQueue = null;
+  this.updateQueue = null; // 链式队列
   this.memoizedState = null;
   this.dependencies = null;
 
@@ -151,49 +152,10 @@ function FiberNode(
   this.subtreeFlags = NoFlags;
   this.deletions = null;
 
-  this.lanes = NoLanes;
-  this.childLanes = NoLanes;
+  this.lanes = NoLanes; // 代表本节点的优先级
+  this.childLanes = NoLanes; // 代表子节点的优先级
 
   this.alternate = null;
-
-  if (enableProfilerTimer) {
-    // Note: The following is done to avoid a v8 performance cliff.
-    //
-    // Initializing the fields below to smis and later updating them with
-    // double values will cause Fibers to end up having separate shapes.
-    // This behavior/bug has something to do with Object.preventExtension().
-    // Fortunately this only impacts DEV builds.
-    // Unfortunately it makes React unusably slow for some applications.
-    // To work around this, initialize the fields below with doubles.
-    //
-    // Learn more about this here:
-    // https://github.com/facebook/react/issues/14365
-    // https://bugs.chromium.org/p/v8/issues/detail?id=8538
-    this.actualDuration = Number.NaN;
-    this.actualStartTime = Number.NaN;
-    this.selfBaseDuration = Number.NaN;
-    this.treeBaseDuration = Number.NaN;
-
-    // It's okay to replace the initial doubles with smis after initialization.
-    // This won't trigger the performance cliff mentioned above,
-    // and it simplifies other profiler code (including DevTools).
-    this.actualDuration = 0;
-    this.actualStartTime = -1;
-    this.selfBaseDuration = 0;
-    this.treeBaseDuration = 0;
-  }
-
-  if (__DEV__) {
-    // This isn't directly used but is handy for debugging internals:
-
-    this._debugSource = null;
-    this._debugOwner = null;
-    this._debugNeedsRemount = false;
-    this._debugHookTypes = null;
-    if (!hasBadMapPolyfill && typeof Object.preventExtensions === 'function') {
-      Object.preventExtensions(this);
-    }
-  }
 }
 
 // This is a constructor function, rather than a POJO constructor, still

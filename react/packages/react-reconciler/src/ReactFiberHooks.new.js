@@ -144,12 +144,15 @@ if (__DEV__) {
   didWarnAboutMismatchedHooksForComponent = new Set();
 }
 
+/**
+ * 钩子：管理组件的状态和生命周期，是一个包含状态和逻辑的对象
+ */
 export type Hook = {|
-  memoizedState: any,
-  baseState: any,
-  baseQueue: Update<any, any> | null,
+  memoizedState: any, // 
+  baseState: any, //基础状态
+  baseQueue: Update<any, any> | null, // 包含所有下一次渲染中更新的数据
   queue: any,
-  next: Hook | null,
+  next: Hook | null, //指向下一个钩子的指针，通过next属性将所有钩子连接起来，形成一个链表。这个链表用于在组件更新时按顺序执行所有钩子
 |};
 
 export type Effect = {|

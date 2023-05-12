@@ -4,6 +4,8 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ *  两大工作循环之一：任务调度循环
+ * react得以运行的保证，循环调用，控制所有任务（task）的调度
  */
 
 /* eslint-disable no-var */
@@ -35,7 +37,6 @@ import {
   markTaskCanceled,
   markTaskErrored,
   markSchedulerSuspended,
-  markSchedulerUnsuspended,
   markTaskStart,
   stopLoggingProfilingEvents,
   startLoggingProfilingEvents,
@@ -68,9 +69,9 @@ var LOW_PRIORITY_TIMEOUT = 10000;
 // Never times out
 var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt;
 
-// Tasks are stored on a min heap
-var taskQueue = [];
-var timerQueue = [];
+// 任务队列管理   小顶堆数组
+var taskQueue = []; // 用于存储  需要立即执行的任务或需要优先处理的任务
+var timerQueue = []; // 用于存储需要  延时执行的定时器
 
 // Incrementing id counter. Used to maintain insertion order.
 var taskIdCounter = 1;
@@ -144,11 +145,14 @@ function handleTimeout(currentTime) {
   }
 }
 
+/**
+ * 执行调度器中的任务
+ * 并在执行之前和之后做一些初始化和清理操作
+ * @param {*} hasTimeRemaining
+ * @param {*} initialTime
+ * @returns
+ */
 function flushWork(hasTimeRemaining, initialTime) {
-  if (enableProfiling) {
-    markSchedulerUnsuspended(initialTime);
-  }
-
   // We'll need a host callback the next time work is scheduled.
   isHostCallbackScheduled = false;
   if (isHostTimeoutScheduled) {
@@ -185,15 +189,29 @@ function flushWork(hasTimeRemaining, initialTime) {
     }
   }
 }
-
+/**
+ * React工作循环之一：任务调度循环
+ * 执行调度器中的任务
+ * 在执行期间处理任务队列和定时器队列
+ * @param {*} hasTimeRemaining
+ * @param {*} initialTime
+ * @returns
+ */
 function workLoop(hasTimeRemaining, initialTime) {
   let currentTime = initialTime;
   advanceTimers(currentTime);
   currentTask = peek(taskQueue);
+  //在此处实现了时间切片(time slicing)和fiber树的可中断渲染
+  // 每一次while循环的退出就是一个时间切片
+  // 队列被完全清空: 这种情况就是很正常的情况, 一气呵成, 没有遇到任何阻碍.
+
   while (
     currentTask !== null &&
     !(enableSchedulerDebugging && isSchedulerPaused)
   ) {
+    //执行超时: 在消费taskQueue时, 在执行task.callback之前, 都会检测是否超时, 所以超时检测是以task为单位.
+    // 如果某个task.callback执行时间太长(如: fiber树很大, 或逻辑很重)也会造成超时
+    // 所以在执行task.callback过程中, 也需要一种机制检测是否超时, 如果超时了就立刻暂停task.callback的执行.
     if (
       currentTask.expirationTime > currentTime &&
       (!hasTimeRemaining || shouldYieldToHost())
@@ -305,7 +323,15 @@ function unstable_wrapCallback(callback) {
   };
 }
 
+/**
+ * 向任务队列中添加一个新的任务
+ * @param {*} priorityLevel  任务优先级
+ * @param {*} callback  任务回调函数
+ * @param {*} options  任务的选项  例如延迟时间
+ * @returns
+ */
 function unstable_scheduleCallback(priorityLevel, callback, options) {
+  // 1. 获取当前时间
   var currentTime = getCurrentTime();
 
   var startTime;
@@ -320,6 +346,7 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
     startTime = currentTime;
   }
 
+  // 2. 根据传入的优先级, 设置任务的过期时间 expirationTime
   var timeout;
   switch (priorityLevel) {
     case ImmediatePriority:
@@ -342,12 +369,13 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
 
   var expirationTime = startTime + timeout;
 
+  // 3. 创建新任务
   var newTask = {
-    id: taskIdCounter++,
-    callback,
-    priorityLevel,
-    startTime,
-    expirationTime,
+    id: taskIdCounter++, // id: 一个自增编号
+    callback, // callback: 传入的回调函数
+    priorityLevel, // priorityLevel: 优先级等级
+    startTime, // startTime: 创建task时的当前时间
+    expirationTime, // expirationTime: task的过期时间, 优先级越高 expirationTime = startTime + timeout 越小
     sortIndex: -1,
   };
   if (enableProfiling) {
@@ -357,6 +385,7 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   if (startTime > currentTime) {
     // This is a delayed task.
     newTask.sortIndex = startTime;
+    // 4. 加入任务队列
     push(timerQueue, newTask);
     if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
       // All tasks are delayed, and this is the task with the earliest delay.
@@ -370,14 +399,13 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
       requestHostTimeout(handleTimeout, startTime - currentTime);
     }
   } else {
-    newTask.sortIndex = expirationTime;
+    newTask.sortIndex = expirationTime; // sortIndex: 排序索引, 全等于过期时间. 保证过期时间越小, 越紧急的任务排在最前面
     push(taskQueue, newTask);
     if (enableProfiling) {
       markTaskStart(newTask, currentTime);
       newTask.isQueued = true;
     }
-    // Schedule a host callback, if needed. If we're already performing work,
-    // wait until the next time we yield.
+    // 5. 请求调度
     if (!isHostCallbackScheduled && !isPerformingWork) {
       isHostCallbackScheduled = true;
       requestHostCallback(flushWork);
@@ -437,48 +465,36 @@ let startTime = -1;
 
 let needsPaint = false;
 
+/**
+ * 检查当前是否应该将控制权交还给主线程
+ * 目的是尽可能地避免阻塞主线程，提高程序的响应速度和用户体验
+ * @returns
+ */
 function shouldYieldToHost() {
+  // 已经使用的时间timeElapsed
   const timeElapsed = getCurrentTime() - startTime;
+  //已经使用的时间不足一帧的时间，不需要将控制权交还给主线程
   if (timeElapsed < frameInterval) {
-    // The main thread has only been blocked for a really short amount of time;
-    // smaller than a single frame. Don't yield yet.
     return false;
   }
 
-  // The main thread has been blocked for a non-negligible amount of time. We
-  // may want to yield control of the main thread, so the browser can perform
-  // high priority tasks. The main ones are painting and user input. If there's
-  // a pending paint or a pending input, then we should yield. But if there's
-  // neither, then we can yield less often while remaining responsive. We'll
-  // eventually yield regardless, since there could be a pending paint that
-  // wasn't accompanied by a call to `requestPaint`, or other main thread tasks
-  // like network events.
   if (enableIsInputPending) {
+    //有待处理的绘制任务，需要将控制权交还给主线程
     if (needsPaint) {
-      // There's a pending paint (signaled by `requestPaint`). Yield now.
       return true;
     }
     if (timeElapsed < continuousInputInterval) {
-      // We haven't blocked the thread for that long. Only yield if there's a
-      // pending discrete input (e.g. click). It's OK if there's pending
-      // continuous input (e.g. mouseover).
       if (isInputPending !== null) {
         return isInputPending();
       }
     } else if (timeElapsed < maxInterval) {
-      // Yield if there's either a pending discrete or continuous input.
       if (isInputPending !== null) {
         return isInputPending(continuousOptions);
       }
     } else {
-      // We've blocked the thread for a long time. Even if there's no pending
-      // input, there may be some other scheduled work that we don't know about,
-      // like a network event. Yield now.
       return true;
     }
   }
-
-  // `isInputPending` isn't available. Yield now.
   return true;
 }
 
@@ -512,54 +528,35 @@ function forceFrameRate(fps) {
   }
 }
 
+// 执行下一个需要执行的回调函数
 const performWorkUntilDeadline = () => {
   if (scheduledHostCallback !== null) {
-    const currentTime = getCurrentTime();
-    // Keep track of the start time so we can measure how long the main thread
-    // has been blocked.
+    const currentTime = getCurrentTime(); // 1. 获取当前时间
     startTime = currentTime;
-    const hasTimeRemaining = true;
-
-    // If a scheduler task throws, exit the current browser task so the
-    // error can be observed.
-    //
-    // Intentionally not using a try-catch, since that makes some debugging
-    // techniques harder. Instead, if `scheduledHostCallback` errors, then
-    // `hasMoreWork` will remain true, and we'll continue the work loop.
+    const hasTimeRemaining = true; //表示还有时间片可以用来执行任务
     let hasMoreWork = true;
     try {
+      // 3. 执行回调, 返回是否有还有剩余任务
       hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
     } finally {
       if (hasMoreWork) {
-        // If there's more work, schedule the next message event at the end
-        // of the preceding one.
+        // 有剩余任务, 发起新的调度
         schedulePerformWorkUntilDeadline();
       } else {
+        // 没有剩余任务, 退出
         isMessageLoopRunning = false;
         scheduledHostCallback = null;
       }
     }
   } else {
-    isMessageLoopRunning = false;
+    isMessageLoopRunning = false; // 消息循环结束
   }
-  // Yielding to the browser will give it a chance to paint, so we can
-  // reset this.
-  needsPaint = false;
+  needsPaint = false; // 重置开关
 };
 
+// 选择合适的调度方式
 let schedulePerformWorkUntilDeadline;
 if (typeof localSetImmediate === 'function') {
-  // Node.js and old IE.
-  // There's a few reasons for why we prefer setImmediate.
-  //
-  // Unlike MessageChannel, it doesn't prevent a Node.js process from exiting.
-  // (Even though this is a DOM fork of the Scheduler, you could get here
-  // with a mix of Node.js 15+, which has a MessageChannel, and jsdom.)
-  // https://github.com/facebook/react/issues/20756
-  //
-  // But also, it runs earlier which is the semantic we want.
-  // If other browsers ever implement it, it's better to use it.
-  // Although both of these would be inferior to native scheduling.
   schedulePerformWorkUntilDeadline = () => {
     localSetImmediate(performWorkUntilDeadline);
   };
@@ -573,16 +570,22 @@ if (typeof localSetImmediate === 'function') {
     port.postMessage(null);
   };
 } else {
-  // We should only fallback here in non-browser environments.
   schedulePerformWorkUntilDeadline = () => {
     localSetTimeout(performWorkUntilDeadline, 0);
   };
 }
 
+/**
+ * 调度控制——请求回调
+ * 请求浏览器在空闲时间执行回调
+ * 用于React应用程序中安排任务，以便让浏览器在空闲时间执行这些任务
+ * @param {*} callback
+ */
 function requestHostCallback(callback) {
   scheduledHostCallback = callback;
   if (!isMessageLoopRunning) {
     isMessageLoopRunning = true;
+    // 启动一个新的消息循环
     schedulePerformWorkUntilDeadline();
   }
 }

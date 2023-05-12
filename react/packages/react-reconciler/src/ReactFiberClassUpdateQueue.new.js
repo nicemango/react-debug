@@ -207,25 +207,41 @@ export function cloneUpdateQueue<State>(
   }
 }
 
+/**
+ * 创建一个更新对象
+ * update对象：内部用于实现更新机制的重要数据结构。当组件状态发生改变时，React会根据这些更新对象来更新组件的UI
+ * 设计思想：简化更新对象的创建过程，并且提供一个标准的更新对象结构，方便后续的状态管理和任务调度
+ * @param {*} eventTime
+ * @param {*} lane
+ * @returns
+ */
 export function createUpdate(eventTime: number, lane: Lane): Update<*> {
   const update: Update<*> = {
-    eventTime,
-    lane,
+    eventTime, // 更新时间
+    lane, // 更新优先级
 
-    tag: UpdateState,
-    payload: null,
-    callback: null,
+    tag: UpdateState, // 更新内容的标志
+    payload: null, // 更新内容
+    callback: null, // 回调函数
 
-    next: null,
+    next: null, // 指向下一个更新对象
   };
   return update;
 }
 
+/**
+ * 将React组件的状态更新添加到更新队列中
+ * @param {*} fiber 需要更新的React组件
+ * @param {*} update 需要添加到队列的更新对象
+ * @param {*} lane 更新优先级
+ * @returns
+ */
 export function enqueueUpdate<State>(
   fiber: Fiber,
   update: Update<State>,
   lane: Lane,
 ): FiberRoot | null {
+  // 检查fiber是否有updateQueue，如果null，则说明组件已经被卸载，不需要再更新
   const updateQueue = fiber.updateQueue;
   if (updateQueue === null) {
     // Only occurs if the fiber has been unmounted.
@@ -233,21 +249,6 @@ export function enqueueUpdate<State>(
   }
 
   const sharedQueue: SharedQueue<State> = (updateQueue: any).shared;
-
-  if (__DEV__) {
-    if (
-      currentlyProcessingQueue === sharedQueue &&
-      !didWarnUpdateInsideUpdate
-    ) {
-      console.error(
-        'An update (setState, replaceState, or forceUpdate) was scheduled ' +
-          'from inside an update function. Update functions should be pure, ' +
-          'with zero side-effects. Consider using componentDidUpdate or a ' +
-          'callback.',
-      );
-      didWarnUpdateInsideUpdate = true;
-    }
-  }
 
   if (isUnsafeClassRenderPhaseUpdate(fiber)) {
     // This is an unsafe render phase update. Add directly to the update

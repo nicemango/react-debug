@@ -3,13 +3,22 @@
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * 处理子节点的命名空间
+ *
  */
-
+// HTML
 export const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+// MathML
 export const MATH_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
+// SVG
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
-// Assumes there is no parent namespace.
+/**
+ * 
+ * @param {*} type 创建的元素节点类型  svg、math、html等
+ * @returns 
+ */
 export function getIntrinsicNamespace(type: string): string {
   switch (type) {
     case 'svg':
@@ -21,6 +30,12 @@ export function getIntrinsicNamespace(type: string): string {
   }
 }
 
+/**
+ * 返回相应子节点命名空间
+ * @param {*} parentNamespace 父节点命名空间
+ * @param {*} type 子节点类型
+ * @returns 
+ */
 export function getChildNamespace(
   parentNamespace: string | null,
   type: string,

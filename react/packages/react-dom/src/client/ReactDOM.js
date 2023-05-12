@@ -151,14 +151,6 @@ function createRoot(
   container: Element | Document | DocumentFragment,
   options?: CreateRootOptions,
 ): RootType {
-  if (__DEV__) {
-    if (!Internals.usingClientEntryPoint && !__UMD__) {
-      console.error(
-        'You are importing createRoot from "react-dom" which is not supported. ' +
-          'You should instead import it from "react-dom/client".',
-      );
-    }
-  }
   return createRootImpl(container, options);
 }
 

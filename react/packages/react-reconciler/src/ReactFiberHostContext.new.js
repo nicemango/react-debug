@@ -74,14 +74,22 @@ function getHostContext(): HostContext {
   return context;
 }
 
+/**
+ * 将当前组件的上下文环境推入到上下文环境栈中
+ * @param {*} fiber 
+ * @returns 
+ */
 function pushHostContext(fiber: Fiber): void {
+  // 获取当前组件的根容器实例
   const rootInstance: Container = requiredContext(
     rootInstanceStackCursor.current,
   );
+  // 获取父组件的上下文环境
   const context: HostContext = requiredContext(contextStackCursor.current);
+  // 获取当前组件的上下文环境
   const nextContext = getChildHostContext(context, fiber.type, rootInstance);
 
-  // Don't push this Fiber's context unless it's unique.
+  // 如果当前组件上下文环境和父组件上下文环境相同，就不需要将当前组件的上下文环境推入栈中
   if (context === nextContext) {
     return;
   }

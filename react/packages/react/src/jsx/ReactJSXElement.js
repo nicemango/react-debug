@@ -147,64 +147,25 @@ function defineRefPropWarningGetter(props, displayName) {
  */
 const ReactElement = function(type, key, ref, self, source, owner, props) {
   const element = {
-    // This tag allows us to uniquely identify this as a React Element
+    // 用于辨别ReactElement对象
     $$typeof: REACT_ELEMENT_TYPE,
 
-    // Built-in properties that belong on the element
-    type: type,
+    // 内部属性
+    type: type, // 节点类型  它的值可以是字符串(代表div,span等 dom 节点), 函数(代表function, class等节点), 或者 react 内部定义的节点类型(portal,context,fragment等)
     key: key,
     ref: ref,
     props: props,
 
-    // Record the component responsible for creating this element.
+    // ReactFiber 记录创建本对象的Fiber节点, 还未与Fiber树关联之前, 该属性为null
     _owner: owner,
   };
-
-  if (__DEV__) {
-    // The validation flag is currently mutative. We put it on
-    // an external backing store so that we can freeze the whole object.
-    // This can be replaced with a WeakMap once they are implemented in
-    // commonly used development environments.
-    element._store = {};
-
-    // To make comparing ReactElements easier for testing purposes, we make
-    // the validation flag non-enumerable (where possible, which should
-    // include every environment we run tests in), so the test framework
-    // ignores it.
-    Object.defineProperty(element._store, 'validated', {
-      configurable: false,
-      enumerable: false,
-      writable: true,
-      value: false,
-    });
-    // self and source are DEV only properties.
-    Object.defineProperty(element, '_self', {
-      configurable: false,
-      enumerable: false,
-      writable: false,
-      value: self,
-    });
-    // Two elements created in two different places should be considered
-    // equal for testing purposes and therefore we hide it from enumeration.
-    Object.defineProperty(element, '_source', {
-      configurable: false,
-      enumerable: false,
-      writable: false,
-      value: source,
-    });
-    if (Object.freeze) {
-      Object.freeze(element.props);
-      Object.freeze(element);
-    }
-  }
-
   return element;
 };
 
 /**
- * https://github.com/reactjs/rfcs/pull/107
- * @param {*} type
- * @param {object} props
+ * 创建React元素  ReactElement
+ * @param {*} type  React 元素的类型
+ * @param {object} props  元素的属性
  * @param {string} key
  */
 export function jsx(type, config, maybeKey) {
@@ -216,23 +177,11 @@ export function jsx(type, config, maybeKey) {
   let key = null;
   let ref = null;
 
-  // Currently, key can be spread in as a prop. This causes a potential
-  // issue if key is also explicitly declared (ie. <div {...props} key="Hi" />
-  // or <div key="Hi" {...props} /> ). We want to deprecate key spread,
-  // but as an intermediary step, we will use jsxDEV for everything except
-  // <div {...props} key="Hi" />, because we aren't currently able to tell if
-  // key is explicitly declared to be undefined or not.
   if (maybeKey !== undefined) {
-    if (__DEV__) {
-      checkKeyStringCoercion(maybeKey);
-    }
     key = '' + maybeKey;
   }
 
   if (hasValidKey(config)) {
-    if (__DEV__) {
-      checkKeyStringCoercion(config.key);
-    }
     key = '' + config.key;
   }
 

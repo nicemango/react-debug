@@ -328,6 +328,7 @@ export function updateContainer(
     onScheduleRoot(container, element);
   }
   const current = container.current;
+  // 1. 获取当前时间戳, 计算本次更新的优先级
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(current);
 
@@ -342,44 +343,18 @@ export function updateContainer(
     container.pendingContext = context;
   }
 
-  if (__DEV__) {
-    if (
-      ReactCurrentFiberIsRendering &&
-      ReactCurrentFiberCurrent !== null &&
-      !didWarnAboutNestedUpdates
-    ) {
-      didWarnAboutNestedUpdates = true;
-      console.error(
-        'Render methods should be a pure function of props and state; ' +
-          'triggering nested component updates from render is not allowed. ' +
-          'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
-          'Check the render method of %s.',
-        getComponentNameFromFiber(ReactCurrentFiberCurrent) || 'Unknown',
-      );
-    }
-  }
-
+  // 2. 设置fiber.updateQueue
   const update = createUpdate(eventTime, lane);
-  // Caution: React DevTools currently depends on this property
-  // being called "element".
   update.payload = {element};
 
   callback = callback === undefined ? null : callback;
   if (callback !== null) {
-    if (__DEV__) {
-      if (typeof callback !== 'function') {
-        console.error(
-          'render(...): Expected the last optional `callback` argument to be a ' +
-            'function. Instead received: %s.',
-          callback,
-        );
-      }
-    }
     update.callback = callback;
   }
 
   const root = enqueueUpdate(current, update, lane);
   if (root !== null) {
+    // 重点关注这个
     scheduleUpdateOnFiber(root, current, lane, eventTime);
     entangleTransitions(root, current, lane);
   }

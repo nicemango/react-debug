@@ -256,6 +256,7 @@ export function createContainer(
 ): OpaqueRoot {
   const hydrate = false;
   const initialChildren = null;
+  // 创建了react应用的首个fiber对象, 称为HostRootFiber(fiber.tag = HostRoot)
   return createFiberRoot(
     containerInfo,
     tag,
@@ -318,23 +319,26 @@ export function createHydrationContainer(
   return root;
 }
 
+/**
+ * 更新dom容器中的内容
+ * @param {*} element React组件
+ * @param {*} container DOM容器的内容根节点对象  FiberRoot
+ * @param {*} parentComponent 父组件实例
+ * @param {*} callback 回调函数
+ * @returns
+ */
 export function updateContainer(
   element: ReactNodeList,
   container: OpaqueRoot,
   parentComponent: ?React$Component<any, any>,
   callback: ?Function,
 ): Lane {
-  if (__DEV__) {
-    onScheduleRoot(container, element);
-  }
-  const current = container.current;
-  const eventTime = requestEventTime();
-  const lane = requestUpdateLane(current);
+  const current = container.current; // 当前容器的FiberRoot对象
+  const eventTime = requestEventTime(); // 获取当前事件时间
+  // 1、创建一个优先级变量（车道模型）
+  const lane = requestUpdateLane(current); 
 
-  if (enableSchedulingProfiler) {
-    markRenderScheduled(lane);
-  }
-
+  // 获取组件树的上下文，并将其保存在容器对象中
   const context = getContextForSubtree(parentComponent);
   if (container.context === null) {
     container.context = context;
@@ -342,44 +346,21 @@ export function updateContainer(
     container.pendingContext = context;
   }
 
-  if (__DEV__) {
-    if (
-      ReactCurrentFiberIsRendering &&
-      ReactCurrentFiberCurrent !== null &&
-      !didWarnAboutNestedUpdates
-    ) {
-      didWarnAboutNestedUpdates = true;
-      console.error(
-        'Render methods should be a pure function of props and state; ' +
-          'triggering nested component updates from render is not allowed. ' +
-          'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
-          'Check the render method of %s.',
-        getComponentNameFromFiber(ReactCurrentFiberCurrent) || 'Unknown',
-      );
-    }
-  }
-
+  // 2、根据车道优先级，创建update对象，并加入fiber.updateQueue.pending队列
   const update = createUpdate(eventTime, lane);
-  // Caution: React DevTools currently depends on this property
-  // being called "element".
+
+  // 存储要更新的React组件
   update.payload = {element};
 
   callback = callback === undefined ? null : callback;
   if (callback !== null) {
-    if (__DEV__) {
-      if (typeof callback !== 'function') {
-        console.error(
-          'render(...): Expected the last optional `callback` argument to be a ' +
-            'function. Instead received: %s.',
-          callback,
-        );
-      }
-    }
     update.callback = callback;
   }
 
+  // 将更新对象添加到容器的更新队列中
   const root = enqueueUpdate(current, update, lane);
   if (root !== null) {
+    // 3、进入调和运作流程的”输入“环节
     scheduleUpdateOnFiber(root, current, lane, eventTime);
     entangleTransitions(root, current, lane);
   }

@@ -90,6 +90,13 @@ export function getConcurrentlyUpdatedLanes(): Lanes {
   return concurrentlyUpdatedLanes;
 }
 
+/**
+ * 
+ * @param {*} fiber 
+ * @param {*} queue 
+ * @param {*} update 
+ * @param {*} lane 
+ */
 function enqueueUpdate(
   fiber: Fiber,
   queue: ConcurrentQueue | null,

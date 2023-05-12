@@ -5,6 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @flow
+ * 
+ * 调用栈实现
+ * 每当一个组件被调用时，它会被推入调用栈中，当组件返回时，它会被弹出调用栈
+ * 
+ * 
+ * React Fiber架构中的数据结构包括两个部分：Fiber树+调用栈
+ * 
  */
 
 import type {Fiber} from './ReactInternalTypes';

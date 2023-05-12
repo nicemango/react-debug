@@ -73,7 +73,8 @@
 
   var HostPortal = 4; // A subtree. Could be an entry point to a different renderer.
 
-  var HostComponent = 5;
+  var HostComponent = 5; // 普通的DOM元素节点
+
   var HostText = 6;
   var Fragment = 7;
   var Mode = 8;
@@ -1559,7 +1560,6 @@
 
   var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
   var current = null;
-  var isRendering = false;
   function getCurrentFiberOwnerNameInDevOrNull() {
     {
       if (current === null) {
@@ -1592,24 +1592,17 @@
     {
       ReactDebugCurrentFrame.getCurrentStack = null;
       current = null;
-      isRendering = false;
     }
   }
   function setCurrentFiber(fiber) {
     {
       ReactDebugCurrentFrame.getCurrentStack = fiber === null ? null : getCurrentFiberStackInDev;
       current = fiber;
-      isRendering = false;
     }
   }
   function getCurrentFiber() {
     {
       return current;
-    }
-  }
-  function setIsRendering(rendering) {
-    {
-      isRendering = rendering;
     }
   }
 
@@ -2432,9 +2425,17 @@
     updateWrapper$1(element, props);
   }
 
-  var HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
-  var MATH_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
-  var SVG_NAMESPACE = 'http://www.w3.org/2000/svg'; // Assumes there is no parent namespace.
+  // HTML
+  var HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml'; // MathML
+
+  var MATH_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'; // SVG
+
+  var SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+  /**
+   * 
+   * @param {*} type 创建的元素节点类型  svg、math、html等
+   * @returns 
+   */
 
   function getIntrinsicNamespace(type) {
     switch (type) {
@@ -2448,6 +2449,13 @@
         return HTML_NAMESPACE;
     }
   }
+  /**
+   * 返回相应子节点命名空间
+   * @param {*} parentNamespace 父节点命名空间
+   * @param {*} type 子节点类型
+   * @returns 
+   */
+
   function getChildNamespace(parentNamespace, type) {
     if (parentNamespace == null || parentNamespace === HTML_NAMESPACE) {
       // No (or default) parent namespace: potential entry point.
@@ -4377,9 +4385,6 @@
       throw error;
     }
   }
-  function hasCaughtError() {
-    return hasError;
-  }
   function clearCaughtError() {
     if (hasError) {
       var error = caughtError;
@@ -4916,21 +4921,6 @@
       return false;
     }
   }
-  function onScheduleRoot(root, children) {
-    {
-      if (injectedHook && typeof injectedHook.onScheduleFiberRoot === 'function') {
-        try {
-          injectedHook.onScheduleFiberRoot(rendererID, root, children);
-        } catch (err) {
-          if ( !hasLoggedError) {
-            hasLoggedError = true;
-
-            error('React instrumentation encountered an error: %s', err);
-          }
-        }
-      }
-    }
-  }
   function onCommitRoot(root, eventPriority) {
     if (injectedHook && typeof injectedHook.onCommitFiberRoot === 'function') {
       try {
@@ -5198,13 +5188,6 @@
       }
     }
   }
-  function markRenderScheduled(lane) {
-    {
-      if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markRenderScheduled === 'function') {
-        injectedProfilingHooks.markRenderScheduled(lane);
-      }
-    }
-  }
   function markForceUpdateScheduled(fiber, lane) {
     {
       if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markForceUpdateScheduled === 'function') {
@@ -5420,7 +5403,8 @@
       }
     }
   }
-  var NoTimestamp = -1;
+  var NoTimestamp = -1; // 当前没有可用的事件时间
+
   var nextTransitionLane = TransitionLane1;
   var nextRetryLane = RetryLane1;
 
@@ -5490,9 +5474,18 @@
         return lanes;
     }
   }
+  /**
+   * 确定下一个需要执行的更新优先级
+   * 确定出当前最紧急的lanes
+   * 此时返回的lanes会作为全局渲染的优先级，用户Fiber树构造过程中，针对fiber对象和update对象，只要它们的优先级fiber.lanes和update.lanes比渲染优先级低，都将会被忽略
+   * @param {*} root Fiber树（FiberRoot）
+   * @param {*} wipLanes 
+   * @returns 
+   */
+
 
   function getNextLanes(root, wipLanes) {
-    // Early bailout if there's no pending work left.
+    // 获取Fiber树中所有待执行的更新优先级
     var pendingLanes = root.pendingLanes;
 
     if (pendingLanes === NoLanes) {
@@ -10987,6 +10980,12 @@
   var STYLE$1 = 'style';
   var eventsEnabled = null;
   var selectionInformation = null;
+  /**
+   * 用于获取根节点的上下文环境
+   * @param {*} rootContainerInstance 
+   * @returns 
+   */
+
   function getRootHostContext(rootContainerInstance) {
     var type;
     var namespace;
@@ -11012,25 +11011,19 @@
         }
     }
 
-    {
-      var validatedTag = type.toLowerCase();
-      var ancestorInfo = updatedAncestorInfo(null, validatedTag);
-      return {
-        namespace: namespace,
-        ancestorInfo: ancestorInfo
-      };
-    }
+    return namespace;
   }
+  /**
+   * 获取子组件的上下文环境
+   * @param {*} parentHostContext 
+   * @param {*} type 
+   * @param {*} rootContainerInstance 
+   * @returns 
+   */
+
   function getChildHostContext(parentHostContext, type, rootContainerInstance) {
-    {
-      var parentHostContextDev = parentHostContext;
-      var namespace = getChildNamespace(parentHostContextDev.namespace, type);
-      var ancestorInfo = updatedAncestorInfo(parentHostContextDev.ancestorInfo, type);
-      return {
-        namespace: namespace,
-        ancestorInfo: ancestorInfo
-      };
-    }
+    var parentNamespace = parentHostContext;
+    return getChildNamespace(parentNamespace, type);
   }
   function getPublicInstance(instance) {
     return instance;
@@ -12401,11 +12394,6 @@
       didSuspendOrErrorDEV = true;
     }
   }
-  function didSuspendOrErrorWhileHydratingDEV() {
-    {
-      return didSuspendOrErrorDEV;
-    }
-  }
 
   function enterHydrationState(fiber) {
 
@@ -13467,6 +13455,13 @@
   function getConcurrentlyUpdatedLanes() {
     return concurrentlyUpdatedLanes;
   }
+  /**
+   * 
+   * @param {*} fiber 
+   * @param {*} queue 
+   * @param {*} update 
+   * @param {*} lane 
+   */
 
   function enqueueUpdate(fiber, queue, update, lane) {
     // Don't update the `childLanes` on the return path yet. If we already in
@@ -13619,6 +13614,7 @@
     }
   }
 
+  // UpdateQueue is a linked list of prioritized updates.
   var UpdateState = 0;
   var ReplaceState = 1;
   var ForceUpdate = 2;
@@ -13627,11 +13623,9 @@
   // `checkHasForceUpdateAfterProcessing`.
 
   var hasForceUpdate = false;
-  var didWarnUpdateInsideUpdate;
   var currentlyProcessingQueue;
 
   {
-    didWarnUpdateInsideUpdate = false;
     currentlyProcessingQueue = null;
   }
 
@@ -13665,18 +13659,42 @@
       workInProgress.updateQueue = clone;
     }
   }
+  /**
+   * 创建一个更新对象
+   * update对象：内部用于实现更新机制的重要数据结构。当组件状态发生改变时，React会根据这些更新对象来更新组件的UI
+   * 设计思想：简化更新对象的创建过程，并且提供一个标准的更新对象结构，方便后续的状态管理和任务调度
+   * @param {*} eventTime
+   * @param {*} lane
+   * @returns
+   */
+
   function createUpdate(eventTime, lane) {
     var update = {
       eventTime: eventTime,
+      // 更新时间
       lane: lane,
+      // 更新优先级
       tag: UpdateState,
+      // 更新内容的标志
       payload: null,
+      // 更新内容
       callback: null,
-      next: null
+      // 回调函数
+      next: null // 指向下一个更新对象
+
     };
     return update;
   }
+  /**
+   * 将React组件的状态更新添加到更新队列中
+   * @param {*} fiber 需要更新的React组件
+   * @param {*} update 需要添加到队列的更新对象
+   * @param {*} lane 更新优先级
+   * @returns
+   */
+
   function enqueueUpdate$1(fiber, update, lane) {
+    // 检查fiber是否有updateQueue，如果null，则说明组件已经被卸载，不需要再更新
     var updateQueue = fiber.updateQueue;
 
     if (updateQueue === null) {
@@ -13685,14 +13703,6 @@
     }
 
     var sharedQueue = updateQueue.shared;
-
-    {
-      if (currentlyProcessingQueue === sharedQueue && !didWarnUpdateInsideUpdate) {
-        error('An update (setState, replaceState, or forceUpdate) was scheduled ' + 'from inside an update function. Update functions should be pure, ' + 'with zero side-effects. Consider using componentDidUpdate or a ' + 'callback.');
-
-        didWarnUpdateInsideUpdate = true;
-      }
-    }
 
     if (isUnsafeClassRenderPhaseUpdate()) {
       // This is an unsafe render phase update. Add directly to the update
@@ -16132,11 +16142,20 @@
     var context = requiredContext(contextStackCursor$1.current);
     return context;
   }
+  /**
+   * 将当前组件的上下文环境推入到上下文环境栈中
+   * @param {*} fiber 
+   * @returns 
+   */
+
 
   function pushHostContext(fiber) {
-    var rootInstance = requiredContext(rootInstanceStackCursor.current);
-    var context = requiredContext(contextStackCursor$1.current);
-    var nextContext = getChildHostContext(context, fiber.type); // Don't push this Fiber's context unless it's unique.
+    // 获取当前组件的根容器实例
+    var rootInstance = requiredContext(rootInstanceStackCursor.current); // 获取父组件的上下文环境
+
+    var context = requiredContext(contextStackCursor$1.current); // 获取当前组件的上下文环境
+
+    var nextContext = getChildHostContext(context, fiber.type); // 如果当前组件上下文环境和父组件上下文环境相同，就不需要将当前组件的上下文环境推入栈中
 
     if (context === nextContext) {
       return;
@@ -16442,6 +16461,10 @@
   {
     didWarnAboutMismatchedHooksForComponent = new Set();
   }
+  /**
+   * 钩子：管理组件的状态和生命周期，是一个包含状态和逻辑的对象
+   */
+
 
   // These are set right before calling the component.
   var renderLanes = NoLanes; // The work-in-progress fiber. I've named it differently to distinguish it from
@@ -16768,7 +16791,6 @@
       hookTypesDev = null;
       hookTypesUpdateIndexDev = -1;
       currentHookNameInDev = null;
-      isUpdatingOpaqueValueInRenderPhase = false;
     }
 
     didScheduleRenderPhaseUpdateDuringThisPass = false;
@@ -17687,13 +17709,6 @@
     var hook = updateWorkInProgressHook();
     var start = hook.memoizedState;
     return [isPending, start];
-  }
-
-  var isUpdatingOpaqueValueInRenderPhase = false;
-  function getIsUpdatingOpaqueValueInRenderPhaseInDEV() {
-    {
-      return isUpdatingOpaqueValueInRenderPhase;
-    }
   }
 
   function mountId() {
@@ -19809,7 +19824,6 @@
 
     {
       ReactCurrentOwner$1.current = workInProgress;
-      setIsRendering(true);
       nextChildren = renderWithHooks(current, workInProgress, render, nextProps, ref, renderLanes);
       hasId = checkDidRenderIdHook();
 
@@ -19823,8 +19837,6 @@
           setIsStrictModeForDevtools(false);
         }
       }
-
-      setIsRendering(false);
     }
 
     {
@@ -20307,7 +20319,6 @@
 
     {
       ReactCurrentOwner$1.current = workInProgress;
-      setIsRendering(true);
       nextChildren = renderWithHooks(current, workInProgress, Component, nextProps, context, renderLanes);
       hasId = checkDidRenderIdHook();
 
@@ -20321,8 +20332,6 @@
           setIsStrictModeForDevtools(false);
         }
       }
-
-      setIsRendering(false);
     }
 
     {
@@ -20471,7 +20480,6 @@
       }
 
       {
-        setIsRendering(true);
         nextChildren = instance.render();
 
         if ( workInProgress.mode & StrictLegacyMode) {
@@ -20483,8 +20491,6 @@
             setIsStrictModeForDevtools(false);
           }
         }
-
-        setIsRendering(false);
       }
 
       {
@@ -20534,7 +20540,8 @@
 
     if (current === null) {
       throw new Error('Should have a current fiber. This is a bug in React.');
-    }
+    } // 1. 状态计算, 更新整合到 workInProgress.memoizedState中来
+
 
     var nextProps = workInProgress.pendingProps;
     var prevState = workInProgress.memoizedState;
@@ -20625,6 +20632,11 @@
     reconcileChildren(current, workInProgress, nextChildren, renderLanes);
     return workInProgress.child;
   }
+  /**
+   * 更新宿主组件
+   * 宿主组件Host Component：宿主环境提供的原生组件，例如div、span、img等。宿主组件是React应用程序中的最底层组件，它们是React应用程序和宿主环境之间的桥梁，负责将React元素渲染到宿主环境中。
+   */
+
 
   function updateHostComponent(current, workInProgress, renderLanes) {
     pushHostContext(workInProgress);
@@ -20799,12 +20811,9 @@
       if (workInProgress.mode & StrictLegacyMode) {
         ReactStrictModeWarnings.recordLegacyContextWarning(workInProgress, null);
       }
-
-      setIsRendering(true);
       ReactCurrentOwner$1.current = workInProgress;
       value = renderWithHooks(null, workInProgress, Component, props, context, renderLanes);
       hasId = checkDidRenderIdHook();
-      setIsRendering(false);
     }
 
     {
@@ -21990,9 +21999,7 @@
 
     {
       ReactCurrentOwner$1.current = workInProgress;
-      setIsRendering(true);
       newChildren = render(newValue);
-      setIsRendering(false);
     }
 
     {
@@ -22050,64 +22057,6 @@
 
     cloneChildFibers(current, workInProgress);
     return workInProgress.child;
-  }
-
-  function remountFiber(current, oldWorkInProgress, newWorkInProgress) {
-    {
-      var returnFiber = oldWorkInProgress.return;
-
-      if (returnFiber === null) {
-        // eslint-disable-next-line react-internal/prod-error-codes
-        throw new Error('Cannot swap the root fiber.');
-      } // Disconnect from the old current.
-      // It will get deleted.
-
-
-      current.alternate = null;
-      oldWorkInProgress.alternate = null; // Connect to the new tree.
-
-      newWorkInProgress.index = oldWorkInProgress.index;
-      newWorkInProgress.sibling = oldWorkInProgress.sibling;
-      newWorkInProgress.return = oldWorkInProgress.return;
-      newWorkInProgress.ref = oldWorkInProgress.ref; // Replace the child/sibling pointers above it.
-
-      if (oldWorkInProgress === returnFiber.child) {
-        returnFiber.child = newWorkInProgress;
-      } else {
-        var prevSibling = returnFiber.child;
-
-        if (prevSibling === null) {
-          // eslint-disable-next-line react-internal/prod-error-codes
-          throw new Error('Expected parent to have a child.');
-        }
-
-        while (prevSibling.sibling !== oldWorkInProgress) {
-          prevSibling = prevSibling.sibling;
-
-          if (prevSibling === null) {
-            // eslint-disable-next-line react-internal/prod-error-codes
-            throw new Error('Expected to find the previous sibling.');
-          }
-        }
-
-        prevSibling.sibling = newWorkInProgress;
-      } // Delete the old fiber and place the new one.
-      // Since the old fiber is disconnected, we have to schedule it manually.
-
-
-      var deletions = returnFiber.deletions;
-
-      if (deletions === null) {
-        returnFiber.deletions = [current];
-        returnFiber.flags |= ChildDeletion;
-      } else {
-        deletions.push(current);
-      }
-
-      newWorkInProgress.flags |= Placement; // Restart work from the new fiber.
-
-      return newWorkInProgress;
-    }
   }
 
   function checkScheduledUpdateOrContext(current, renderLanes) {
@@ -22318,13 +22267,6 @@
   }
 
   function beginWork(current, workInProgress, renderLanes) {
-    {
-      if (workInProgress._debugNeedsRemount && current !== null) {
-        // This will restart the begin phase with a new fiber.
-        return remountFiber(current, workInProgress, createFiberFromTypeAndProps(workInProgress.type, workInProgress.key, workInProgress.pendingProps, workInProgress._debugOwner || null, workInProgress.mode, workInProgress.lanes));
-      }
-    }
-
     if (current !== null) {
       var oldProps = current.memoizedProps;
       var newProps = workInProgress.pendingProps;
@@ -22419,6 +22361,7 @@
         return updateHostRoot(current, workInProgress, renderLanes);
 
       case HostComponent:
+        console.log('✈️✈️✈️更新宿主组件', current, workInProgress, renderLanes);
         return updateHostComponent(current, workInProgress, renderLanes);
 
       case HostText:
@@ -22873,6 +22816,14 @@
       return true;
     }
   }
+  /**
+   *
+   * @param {*} current
+   * @param {*} workInProgress
+   * @param {*} renderLanes
+   * @returns
+   */
+
 
   function completeWork(current, workInProgress, renderLanes) {
     var newProps = workInProgress.pendingProps; // Note: This intentionally doesn't check if we're hydrating because comparing
@@ -22974,20 +22925,23 @@
 
           return null;
         }
+      // 页面渲染所必须
 
       case HostComponent:
         {
           popHostContext(workInProgress);
           var rootContainerInstance = getRootHostContainer();
-          var type = workInProgress.type;
+          var type = workInProgress.type; // workInProgress.stateNode != null   该Fiber节点是否存在对应的DOM节点
 
           if (current !== null && workInProgress.stateNode != null) {
+            // update
             updateHostComponent$1(current, workInProgress, type, newProps, rootContainerInstance);
 
             if (current.ref !== workInProgress.ref) {
               markRef$1(workInProgress);
             }
           } else {
+            // mount
             if (!newProps) {
               if (workInProgress.stateNode === null) {
                 throw new Error('We must have new props for new mounts. This error is likely ' + 'caused by a bug in React. Please file an issue.');
@@ -23014,11 +22968,12 @@
                 markUpdate(workInProgress);
               }
             } else {
-              var instance = createInstance(type, newProps, rootContainerInstance, currentHostContext, workInProgress);
-              appendAllChildren(instance, workInProgress, false, false);
-              workInProgress.stateNode = instance; // Certain renderers require commit-time effects for initial mount.
-              // (eg DOM renderer supports auto-focus for certain elements).
-              // Make sure such renderers get scheduled for later work.
+              // 为fiber创建对应DOM节点
+              var instance = createInstance(type, newProps, rootContainerInstance, currentHostContext, workInProgress); // 将子孙DOM节点插入刚生成的DOM节点中
+
+              appendAllChildren(instance, workInProgress, false, false); // DOM节点赋值给fiber.stateNode
+
+              workInProgress.stateNode = instance; // 与update逻辑中的updateHostComponent类似的处理props的过程
 
               if (finalizeInitialChildren(instance, type, newProps, rootContainerInstance)) {
                 markUpdate(workInProgress);
@@ -23864,9 +23819,22 @@
 
   var focusedInstanceHandle = null;
   var shouldFireAfterActiveInstanceBlur = false;
-  function commitBeforeMutationEffects(root, firstChild) {
-    focusedInstanceHandle = prepareForCommit(root.containerInfo);
-    nextEffect = firstChild;
+  /**
+   * 在DOM树中执行“mutation”之前提交一些副作用
+   * React中的mutation指的是对DOM树进行插入、删除和更新等操作
+   * @param {*} root
+   * @param {*} firstChild
+   * @returns
+   */
+
+  function commitBeforeMutationEffects(root, // Fiber树的根节点
+  firstChild) //第一个子节点
+  {
+    // 准备将组件会更新应用到DOM树
+    focusedInstanceHandle = prepareForCommit(root.containerInfo); // 将全局变量nextEffect设置为第一个子节点
+
+    nextEffect = firstChild; // 开始执行提交前的副作用（生命周期钩子函数+red回调函数等）
+
     commitBeforeMutationEffects_begin(); // We no longer need to track the active instance fiber
 
     var shouldFire = shouldFireAfterActiveInstanceBlur;
@@ -24018,19 +23986,7 @@
               }
             }
 
-            {
-              if ((flags & Insertion) !== NoFlags$1) {
-                setIsRunningInsertionEffect(true);
-              }
-            }
-
             safelyCallDestroy(finishedWork, nearestMountedAncestor, destroy);
-
-            {
-              if ((flags & Insertion) !== NoFlags$1) {
-                setIsRunningInsertionEffect(false);
-              }
-            }
 
             {
               if ((flags & Passive$1) !== NoFlags$1) {
@@ -24068,19 +24024,7 @@
 
           var create = effect.create;
 
-          {
-            if ((flags & Insertion) !== NoFlags$1) {
-              setIsRunningInsertionEffect(true);
-            }
-          }
-
           effect.destroy = create();
-
-          {
-            if ((flags & Insertion) !== NoFlags$1) {
-              setIsRunningInsertionEffect(false);
-            }
-          }
 
           {
             if ((flags & Passive$1) !== NoFlags$1) {
@@ -24802,11 +24746,29 @@
       }
     }
   }
+  /**
+   * 在DOM树中插入新的节点
+   * @param {*} finishedWork Fiber节点完成所有更新并准备提交DOM树之前的一个状态
+   * @returns
+   *
+   * finishedWork并不是Fiber节点的一种类型，而是在Fiber节点更新过程中的一个中间状态
+   * React更新过程中，Fiber节点会经历多个阶段：
+   * 收集更新-》构建Fiber树-》执行生命周期函数-》更新状态-》计算副作用-》提交更新
+   *
+   * Fiber的其它状态：表示不同的组件状态和更新信息
+   * workInProgress:正在进行更新的Fiber节点
+   * current：上一次更新后的Fiber节点
+   * pendingProps：等待更新的新的props
+   * memoizedState：上一次更新后的state
+   * altenate：当前Fiber节点对应的备用节点
+   *
+   */
+
 
   function commitPlacement(finishedWork) {
 
 
-    var parentFiber = getHostParentFiber(finishedWork); // Note: these two variables *must* always be updated together.
+    var parentFiber = getHostParentFiber(finishedWork); // 不同类型不同操作
 
     switch (parentFiber.tag) {
       case HostComponent:
@@ -24870,13 +24832,20 @@
       }
     }
   }
+  /**
+   * 用于将节点插入到DOM树中的正确位置
+   * @param {*} node  要插入的节点node
+   * @param {*} before 该节点要插入到哪个节点之前
+   * @param {*} parent 要插入到哪个节点的子节点列表中parent
+   */
+
 
   function insertOrAppendPlacementNode(node, before, parent) {
     var tag = node.tag;
     var isHost = tag === HostComponent || tag === HostText;
 
     if (isHost) {
-      var stateNode = node.stateNode;
+      var stateNode = node.stateNode; // 如果before存在，则在before之前插入，否则在parent的子节点列表末尾插入
 
       if (before) {
         insertBefore(parent, stateNode, before);
@@ -25258,10 +25227,18 @@
       }
     });
   } // This function detects when a Suspense boundary goes from visible to hidden.
+  /**
+   * 在DOM树中提交已完成的副作用
+   * @param {*} root
+   * @param {*} finishedWork
+   * @param {*} committedLanes
+   */
+
   function commitMutationEffects(root, finishedWork, committedLanes) {
     inProgressLanes = committedLanes;
     inProgressRoot = root;
-    setCurrentFiber(finishedWork);
+    setCurrentFiber(finishedWork); // 开始在DOM树中提交已完成的副作用
+
     commitMutationEffectsOnFiber(finishedWork, root);
     setCurrentFiber(finishedWork);
     inProgressLanes = null;
@@ -25652,6 +25629,13 @@
       finishedWork.flags &= ~Hydrating;
     }
   }
+  /**
+   * 在DOM树中提交布局副作用
+   * @param {*} finishedWork
+   * @param {*} root
+   * @param {*} committedLanes
+   */
+
 
   function commitLayoutEffects(finishedWork, root, committedLanes) {
     inProgressLanes = committedLanes;
@@ -26704,32 +26688,6 @@
   }
 
   var ReactCurrentActQueue = ReactSharedInternals.ReactCurrentActQueue;
-  function isLegacyActEnvironment(fiber) {
-    {
-      // Legacy mode. We preserve the behavior of React 17's act. It assumes an
-      // act environment whenever `jest` is defined, but you can still turn off
-      // spurious warnings by setting IS_REACT_ACT_ENVIRONMENT explicitly
-      // to false.
-      var isReactActEnvironmentGlobal = // $FlowExpectedError – Flow doesn't know about IS_REACT_ACT_ENVIRONMENT global
-      typeof IS_REACT_ACT_ENVIRONMENT !== 'undefined' ? IS_REACT_ACT_ENVIRONMENT : undefined; // $FlowExpectedError - Flow doesn't know about jest
-
-      var jestIsDefined = typeof jest !== 'undefined';
-      return  jestIsDefined && isReactActEnvironmentGlobal !== false;
-    }
-  }
-  function isConcurrentActEnvironment() {
-    {
-      var isReactActEnvironmentGlobal = // $FlowExpectedError – Flow doesn't know about IS_REACT_ACT_ENVIRONMENT global
-      typeof IS_REACT_ACT_ENVIRONMENT !== 'undefined' ? IS_REACT_ACT_ENVIRONMENT : undefined;
-
-      if (!isReactActEnvironmentGlobal && ReactCurrentActQueue.current !== null) {
-        // TODO: Include link to relevant documentation page.
-        error('The current testing environment is not configured to support ' + 'act(...)');
-      }
-
-      return isReactActEnvironmentGlobal;
-    }
-  }
 
   var ceil = Math.ceil;
   var ReactCurrentDispatcher$2 = ReactSharedInternals.ReactCurrentDispatcher,
@@ -26754,13 +26712,13 @@
   var RootSuspended = 3;
   var RootSuspendedWithDelay = 4;
   var RootCompleted = 5;
-  var RootDidNotComplete = 6; // Describes where we are in the React execution stack
+  var RootDidNotComplete = 6; // 当前React的执行栈(执行上下文)
 
-  var executionContext = NoContext; // The root we're working on
+  var executionContext = NoContext; // 当前root节点
 
-  var workInProgressRoot = null; // The fiber we're working on
+  var workInProgressRoot = null; // 正在处理中的fiber节点
 
-  var workInProgress = null; // The lanes we're rendering
+  var workInProgress = null; // 正在渲染的车道(复数)
 
   var workInProgressRootRenderLanes = NoLanes; // A contextual version of workInProgressRootRenderLanes. It is a superset of
   // the lanes that we started working on at the root. When we enter a subtree
@@ -26768,12 +26726,12 @@
   // the hidden tree hadn't been deferred. This is modified by the
   // HiddenContext module.
   //
-  // Most things in the work loop should deal with workInProgressRootRenderLanes.
-  // Most things in begin/complete phases should deal with renderLanes.
+  // 当前正在执行的更新优先级
+  // 全局渲染优先级
 
-  var renderLanes$1 = NoLanes; // Whether to root completed, errored, suspended, etc.
+  var renderLanes$1 = NoLanes; // fiber构造完后, root节点的状态: completed, errored, suspended等
 
-  var workInProgressRootExitStatus = RootInProgress; // A fatal error, if one is thrown
+  var workInProgressRootExitStatus = RootInProgress; // 重大错误
 
   var workInProgressRootFatalError = null; // The work left over by components that were visited during this render. Only
   // includes unprocessed updates, not work in bailed out children.
@@ -26815,29 +26773,32 @@
   var pendingPassiveEffectsLanes = NoLanes;
   var pendingPassiveProfilerEffects = [];
   var pendingPassiveEffectsRemainingLanes = NoLanes;
-  var pendingPassiveTransitions = null; // Use these to prevent an infinite loop of nested updates
+  var pendingPassiveTransitions = null; // 防止无限循环和嵌套更新
 
   var NESTED_UPDATE_LIMIT = 50;
   var nestedUpdateCount = 0;
   var rootWithNestedUpdates = null;
-  var isFlushingPassiveEffects = false;
   var didScheduleUpdateDuringPassiveEffects = false;
   var NESTED_PASSIVE_UPDATE_LIMIT = 50;
   var nestedPassiveUpdateCount = 0;
-  var rootWithPassiveNestedUpdates = null; // If two updates are scheduled within the same event, we should treat their
-  // event times as simultaneous, even if the actual clock time has advanced
-  // between the first and second call.
+  var rootWithPassiveNestedUpdates = null; // 发起更新的时间
 
   var currentEventTime = NoTimestamp;
   var currentEventTransitionLane = NoLanes;
-  var isRunningInsertionEffect = false;
   function getWorkInProgressRoot() {
     return workInProgressRoot;
   }
   function getWorkInProgressRootRenderLanes() {
     return workInProgressRootRenderLanes;
   }
+  /**
+   * 获取事件时间
+   * 事件时间：标识更新对象的创建时间，以便在任务调度时进行优先级判断
+   * @returns
+   */
+
   function requestEventTime() {
+    // RenderContext和CommitContext，这两个都是React内部的执行环境
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
       // We're inside React, so it's fine to read the actual time.
       return now();
@@ -26853,6 +26814,13 @@
     currentEventTime = now();
     return currentEventTime;
   }
+  /**
+   * 给Fiber对象分配一个更新优先级
+   * 更新优先级确定更新对象在任务队列中的位置和执行顺序，从而保证状态的一致性
+   * @param {*} fiber
+   * @returns
+   */
+
   function requestUpdateLane(fiber) {
     // Special cases
     var mode = fiber.mode;
@@ -26860,17 +26828,10 @@
     if ((mode & ConcurrentMode) === NoMode) {
       return SyncLane;
     } else if ( (executionContext & RenderContext) !== NoContext && workInProgressRootRenderLanes !== NoLanes) {
-      // This is a render phase update. These are not officially supported. The
-      // old behavior is to give this the same "thread" (lanes) as
-      // whatever is currently rendering. So if you call `setState` on a component
-      // that happens later in the same render, it will flush. Ideally, we want to
-      // remove the special case and treat them as if they came from an
-      // interleaved event. Regardless, this pattern is not officially supported.
-      // This behavior is only a fallback. The flag only exists until we can roll
-      // out the setState warning, since existing code might accidentally rely on
-      // the current behavior.
+      // 此时需要将更新优先级分配给与当前渲染过程相同的任务队列。这是一种特殊的情况，不被官方支持，只是为了向后兼容而存在
       return pickArbitraryLane(workInProgressRootRenderLanes);
-    }
+    } // 当前存在过渡（transition）操作（即执行一系列动画效果）,则需要将更新优先级分配给当前过渡操作所在的任务队列
+
 
     var isTransition = requestCurrentTransition() !== NoTransition;
 
@@ -26883,14 +26844,7 @@
         }
 
         transition._updatedFibers.add(fiber);
-      } // The algorithm for assigning an update to a lane should be stable for all
-      // updates at the same priority within the same event. To do this, the
-      // inputs to the algorithm must be the same.
-      //
-      // The trick we use is to cache the first of each of these inputs within an
-      // event. Then reset the cached values once we can be sure the event is
-      // over. Our heuristic for that is whenever we enter a concurrent work loop.
-
+      }
 
       if (currentEventTransitionLane === NoLane) {
         // All transitions within the same event are assigned the same lane.
@@ -26898,25 +26852,14 @@
       }
 
       return currentEventTransitionLane;
-    } // Updates originating inside certain React methods, like flushSync, have
-    // their priority set by tracking it with a context variable.
-    //
-    // The opaque type returned by the host config is internally a lane, so we can
-    // use that directly.
-    // TODO: Move this type conversion to the event priority module.
+    } //直接返回该优先级。这是因为在某些情况下，更新优先级已经被设置为特定值，不需要再进行计算。
 
 
     var updateLane = getCurrentUpdatePriority();
 
     if (updateLane !== NoLane) {
       return updateLane;
-    } // This update originated outside React. Ask the host environment for an
-    // appropriate priority, based on the type of event.
-    //
-    // The opaque type returned by the host config is internally a lane, so we can
-    // use that directly.
-    // TODO: Move this type conversion to the event priority module.
-
+    }
 
     var eventLane = getCurrentEventPriority();
     return eventLane;
@@ -26935,71 +26878,42 @@
 
     return claimNextRetryLane();
   }
+  /**
+   * 调度组件更新——【调和运作流程一：输入】
+   *  需要改变fiber的操作（无论是首次渲染或后续更新操作），最后都间接调用scheduleUpdateOnFiber，所以这是输入链路的必经之路
+   * @param {*} root  组件树的根节点
+   * @param {*} fiber  需要更新的组件对应的Fiber对象
+   * @param {*} lane   更新优先级
+   * @param {*} eventTime 更新发生的时间
+   */
+
 
   function scheduleUpdateOnFiber(root, fiber, lane, eventTime) {
-    {
-      if (isRunningInsertionEffect) {
-        error('useInsertionEffect must not schedule updates.');
-      }
-    }
+    // 将root标记为待更新的状态
+    markRootUpdated(root, lane, eventTime); // 如果当前执行上下文是render阶段并且root是workInProgressRoot，它会将会更新标记为在render阶段发起的更新
 
-    {
-      if (isFlushingPassiveEffects) {
-        didScheduleUpdateDuringPassiveEffects = true;
-      }
-    } // Mark that the root has a pending update.
-
-
-    markRootUpdated(root, lane, eventTime);
-
-    if ((executionContext & RenderContext) !== NoLanes && root === workInProgressRoot) {
-      // This update was dispatched during the render phase. This is a mistake
-      // if the update originates from user space (with the exception of local
-      // hook updates, which are handled differently and don't reach this
-      // function), but there are some internal React features that use this as
-      // an implementation detail, like selective hydration.
-      warnAboutRenderPhaseUpdatesInDEV(fiber); // Track lanes that were updated during the render phase
-    } else {
-      // This is a normal update, scheduled from outside the render phase. For
-      // example, during an input event.
+    if ((executionContext & RenderContext) !== NoLanes && root === workInProgressRoot) ; else {
       {
         if (isDevToolsPresent) {
           addFiberToLanesMap(root, fiber, lane);
         }
       }
 
-      warnIfUpdatesNotWrappedWithActDEV(fiber);
-
       if (root === workInProgressRoot) {
-        // Received an update to a tree that's in the middle of rendering. Mark
-        // that there was an interleaved update work on this root. Unless the
-        // `deferRenderPhaseUpdateToNextBatch` flag is off and this is a render
-        // phase update. In that case, we don't treat render phase updates as if
-        // they were interleaved, for backwards compat reasons.
         if ( (executionContext & RenderContext) === NoContext) {
           workInProgressRootInterleavedUpdatedLanes = mergeLanes(workInProgressRootInterleavedUpdatedLanes, lane);
         }
 
         if (workInProgressRootExitStatus === RootSuspendedWithDelay) {
-          // The root already suspended with a delay, which means this render
-          // definitely won't finish. Since we have a new update, let's mark it as
-          // suspended now, right before marking the incoming update. This has the
-          // effect of interrupting the current render and switching to the update.
-          // TODO: Make sure this doesn't override pings that happen while we've
-          // already started rendering.
           markRootSuspended$1(root, workInProgressRootRenderLanes);
         }
-      }
+      } // 进入调和第二阶段，注册调度任务
+
 
       ensureRootIsScheduled(root, eventTime);
 
       if (lane === SyncLane && executionContext === NoContext && (fiber.mode & ConcurrentMode) === NoMode && // Treat `act` as if it's inside `batchedUpdates`, even in legacy mode.
       !( ReactCurrentActQueue$1.isBatchingLegacy)) {
-        // Flush the synchronous work now, unless we're already working or inside
-        // a batch. This is intentionally inside scheduleUpdateOnFiber instead of
-        // scheduleCallbackForFiber to preserve the ability to schedule a callback
-        // without immediately flushing it. We only do this for user-initiated
-        // updates, to preserve historical behavior of legacy mode.
         resetRenderTimer();
         flushSyncCallbacksOnlyInLegacyMode();
       }
@@ -27027,22 +26941,22 @@
       // decided not to enable it.
        (executionContext & RenderContext) !== NoContext
     );
-  } // Use this function to schedule a task for a root. There's only one task per
-  // root; if a task was already scheduled, we'll check to make sure the priority
-  // of the existing task is the same as the priority of the next level that the
-  // root has work on. This function is called on every update, and right before
-  // exiting a task.
+  }
+  /**
+   * 调和运作流程第二阶段：注册调度任务
+   * 确保根节点上的任务被正确地调度。它被用于在更新过程中和任务完成时调用
+   * @param {*} root
+   * @param {*} currentTime
+   * @returns
+   */
 
   function ensureRootIsScheduled(root, currentTime) {
-    var existingCallbackNode = root.callbackNode; // Check if any lanes are being starved by other work. If so, mark them as
-    // expired so we know to work on those next.
-
-    markStarvedLanesAsExpired(root, currentTime); // Determine the next lanes to work on, and their priority.
-
+    // 前半部分: 判断是否需要注册新的调度，无需则退出函数
+    var existingCallbackNode = root.callbackNode;
+    markStarvedLanesAsExpired(root, currentTime);
     var nextLanes = getNextLanes(root, root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes);
 
     if (nextLanes === NoLanes) {
-      // Special case: There's nothing to work on.
       if (existingCallbackNode !== null) {
         cancelCallback$1(existingCallbackNode);
       }
@@ -27050,34 +26964,22 @@
       root.callbackNode = null;
       root.callbackPriority = NoLane;
       return;
-    } // We use the highest priority lane to represent the priority of the callback.
+    }
 
-
-    var newCallbackPriority = getHighestPriorityLane(nextLanes); // Check if there's an existing task. We may be able to reuse it.
+    var newCallbackPriority = getHighestPriorityLane(nextLanes); // 节流防抖
+    // 比如连续 2 次setState, 第 2 次setState同样会触发reconciler运作流程中的调度阶段), 如果发现处于调度中, 则需要一些节流和防抖措施, 进而保证调度性能.
 
     var existingCallbackPriority = root.callbackPriority;
 
-    if (existingCallbackPriority === newCallbackPriority && // Special case related to `act`. If the currently scheduled task is a
-    // Scheduler task, rather than an `act` task, cancel it and re-scheduled
-    // on the `act` queue.
-    !( ReactCurrentActQueue$1.current !== null && existingCallbackNode !== fakeActCallbackNode)) {
-      {
-        // If we're going to re-use an existing task, it needs to exist.
-        // Assume that discrete update microtasks are non-cancellable and null.
-        // TODO: Temporary until we confirm this warning is not fired.
-        if (existingCallbackNode == null && existingCallbackPriority !== SyncLane) {
-          error('Expected scheduled callback to exist. This error is likely caused by a bug in React. Please file an issue.');
-        }
-      } // The priority hasn't changed. We can reuse the existing task. Exit.
-
-
+    if (existingCallbackPriority === newCallbackPriority && !( ReactCurrentActQueue$1.current !== null && existingCallbackNode !== fakeActCallbackNode)) {
       return;
     }
 
     if (existingCallbackNode != null) {
-      // Cancel the existing callback. We'll schedule a new one below.
       cancelCallback$1(existingCallbackNode);
-    } // Schedule a new callback.
+    } // 后半部分: 注册调度任务
+    //——performSyncWorkOnRoot或performConcurrentWorkOnRoot被封装到了任务回调(scheduleCallback)中
+    //——等待调度中心执行任务, 任务运行其实就是执行performSyncWorkOnRoot或performConcurrentWorkOnRoot
 
 
     var newCallbackNode;
@@ -27096,21 +26998,11 @@
       }
 
       {
-        // Flush the queue in a microtask.
         if ( ReactCurrentActQueue$1.current !== null) {
-          // Inside `act`, use our internal `act` queue so that these get flushed
-          // at the end of the current scope even when using the sync version
-          // of `act`.
           ReactCurrentActQueue$1.current.push(flushSyncCallbacks);
         } else {
           scheduleMicrotask(function () {
-            // In Safari, appending an iframe forces microtasks to run.
-            // https://github.com/facebook/react/issues/22459
-            // We don't support running callbacks in the middle of render
-            // or commit so we need to check against that.
             if ((executionContext & (RenderContext | CommitContext)) === NoContext) {
-              // Note that this would still prematurely flush the callbacks
-              // if this happens outside render or commit phase (e.g. in an event).
               flushSyncCallbacks();
             }
           });
@@ -27148,8 +27040,13 @@
 
     root.callbackPriority = newCallbackPriority;
     root.callbackNode = newCallbackNode;
-  } // This is the entry point for every concurrent task, i.e. anything that
-  // goes through Scheduler.
+  }
+  /**
+   * 并发任务入口点
+   * @param {*} root
+   * @param {*} didTimeout
+   * @returns
+   */
 
 
   function performConcurrentWorkOnRoot(root, didTimeout) {
@@ -27168,20 +27065,18 @@
     // in case they schedule additional work.
 
 
-    var originalCallbackNode = root.callbackNode;
+    var originalCallbackNode = root.callbackNode; // 1. 刷新pending状态的effects, 有可能某些effect会取消本次任务
+
     var didFlushPassiveEffects = flushPassiveEffects();
 
     if (didFlushPassiveEffects) {
       // Something in the passive effect phase may have canceled the current task.
       // Check if the task node for this root was changed.
       if (root.callbackNode !== originalCallbackNode) {
-        // The current task was canceled. Exit. We don't need to call
-        // `ensureRootIsScheduled` because the check above implies either that
-        // there's a new task, or that there's no remaining work on this root.
+        // 任务被取消, 退出调用
         return null;
       }
-    } // Determine the next lanes to work on, using the fields stored
-    // on the root.
+    } // 2. 每一次render之前，获取本次渲染的优先级
 
 
     var lanes = getNextLanes(root, root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes);
@@ -27189,15 +27084,10 @@
     if (lanes === NoLanes) {
       // Defensive coding. This is never expected to happen.
       return null;
-    } // We disable time-slicing in some cases: if the work has been CPU-bound
-    // for too long ("expired" work, to prevent starvation), or we're in
-    // sync-updates-by-default mode.
-    // TODO: We only check `didTimeout` defensively, to account for a Scheduler
-    // bug we're still investigating. Once the bug in Scheduler is fixed,
-    // we can remove this, since we track expiration ourselves.
+    }
 
+    var shouldTimeSlice = !includesBlockingLane(root, lanes) && !includesExpiredLane(root, lanes) && ( !didTimeout); // 3. 构造fiber树
 
-    var shouldTimeSlice = !includesBlockingLane(root, lanes) && !includesExpiredLane(root, lanes) && ( !didTimeout);
     var exitStatus = shouldTimeSlice ? renderRootConcurrent(root, lanes) : renderRootSync(root, lanes);
 
     if (exitStatus !== RootInProgress) {
@@ -27223,27 +27113,12 @@
       }
 
       if (exitStatus === RootDidNotComplete) {
-        // The render unwound without completing the tree. This happens in special
-        // cases where need to exit the current render without producing a
-        // consistent tree or committing.
-        //
-        // This should only happen during a concurrent render, not a discrete or
-        // synchronous update. We should have already checked for this when we
-        // unwound the stack.
         markRootSuspended$1(root, lanes);
       } else {
-        // The render completed.
-        // Check if this render may have yielded to a concurrent event, and if so,
-        // confirm that any newly rendered stores are consistent.
-        // TODO: It's possible that even a concurrent render may never have yielded
-        // to the main thread, if it was fast enough, or if it expired. We could
-        // skip the consistency check in that case, too.
         var renderWasConcurrent = !includesBlockingLane(root, lanes);
         var finishedWork = root.current.alternate;
 
         if (renderWasConcurrent && !isRenderConsistentWithExternalStores(finishedWork)) {
-          // A store was mutated in an interleaved event. Render again,
-          // synchronously, to block further mutations.
           exitStatus = renderRootSync(root, lanes); // We need to check again if something threw
 
           if (exitStatus === RootErrored) {
@@ -27263,8 +27138,7 @@
             ensureRootIsScheduled(root, now());
             throw _fatalError;
           }
-        } // We now have a consistent tree. The next step is either to commit it,
-        // or, if something suspended, wait to commit it after a timeout.
+        } // 将最新的fiber树挂载到root.finishedWork节点上
 
 
         root.finishedWork = finishedWork;
@@ -27276,8 +27150,7 @@
     ensureRootIsScheduled(root, now());
 
     if (root.callbackNode === originalCallbackNode) {
-      // The task node scheduled for this root is the same one that's
-      // currently executed. Need to return a continuation.
+      // 渲染被阻断, 返回一个新的performConcurrentWorkOnRoot函数, 等待下一次调用
       return performConcurrentWorkOnRoot.bind(null, root);
     }
 
@@ -27523,8 +27396,17 @@
     suspendedLanes = removeLanes(suspendedLanes, workInProgressRootPingedLanes);
     suspendedLanes = removeLanes(suspendedLanes, workInProgressRootInterleavedUpdatedLanes);
     markRootSuspended(root, suspendedLanes);
-  } // This is the entry point for synchronous tasks that don't go
-  // through Scheduler
+  }
+  /**
+   * 同步执行工作的函数之一
+   * @param {*} root
+   * @returns
+   *
+   * 分为3部分
+   * 1、fiber 树构造
+   * 2、异常处理: 有可能 fiber 构造过程中出现异常
+   * 3、调用输出
+   */
 
 
   function performSyncWorkOnRoot(root) {
@@ -27543,15 +27425,12 @@
       // There's no remaining sync work left.
       ensureRootIsScheduled(root, now());
       return null;
-    }
+    } // 1. fiber树构造
 
-    var exitStatus = renderRootSync(root, lanes);
+
+    var exitStatus = renderRootSync(root, lanes); // 2. 异常处理: 有可能fiber构造过程中出现异常
 
     if (root.tag !== LegacyRoot && exitStatus === RootErrored) {
-      // If something threw an error, try rendering one more time. We'll render
-      // synchronously to block concurrent data mutations, and we'll includes
-      // all pending updates are included. If it still fails after the second
-      // attempt, we'll give up and commit the resulting tree.
       var errorRetryLanes = getLanesToRetrySynchronouslyOnError(root);
 
       if (errorRetryLanes !== NoLanes) {
@@ -27570,15 +27449,14 @@
 
     if (exitStatus === RootDidNotComplete) {
       throw new Error('Root did not complete. This is a bug in React.');
-    } // We now have a consistent tree. Because this is a sync render, we
-    // will commit it even if something suspended.
+    } // 3. 输出: 渲染fiber树
 
 
     var finishedWork = root.current.alternate;
     root.finishedWork = finishedWork;
-    root.finishedLanes = lanes;
-    commitRoot(root, workInProgressRootRecoverableErrors, workInProgressTransitions); // Before exiting, make sure there's a callback scheduled for the next
-    // pending level.
+    root.finishedLanes = lanes; // 开启commit阶段工作流程
+
+    commitRoot(root, workInProgressRootRecoverableErrors, workInProgressTransitions); // / 退出前再次检测, 是否还有其他更新, 是否需要发起新调度
 
     ensureRootIsScheduled(root, now());
     return null;
@@ -27680,6 +27558,12 @@
   function getRenderLanes() {
     return renderLanes$1;
   }
+  /**
+   * 刷新栈帧：重置FiberRoot上的全局属性和“fiber树构造”循环过程中的全局变量
+   * @param {*} root
+   * @param {*} lanes
+   * @returns
+   */
 
   function prepareFreshStack(root, lanes) {
     root.finishedWork = null;
@@ -27864,8 +27748,7 @@
   function renderRootSync(root, lanes) {
     var prevExecutionContext = executionContext;
     executionContext |= RenderContext;
-    var prevDispatcher = pushDispatcher(); // If the root or lanes have changed, throw out the existing stack
-    // and prepare a fresh one. Otherwise we'll continue where we left off.
+    var prevDispatcher = pushDispatcher();
 
     if (workInProgressRoot !== root || workInProgressRootRenderLanes !== lanes) {
       {
@@ -27875,11 +27758,7 @@
           if (memoizedUpdaters.size > 0) {
             restorePendingUpdaters(root, workInProgressRootRenderLanes);
             memoizedUpdaters.clear();
-          } // At this point, move Fibers that scheduled the upcoming work from the Map to the Set.
-          // If we bailout on this work, we'll move them back (like above).
-          // It's important to move them now in case the work spawns more work at the same priority with different updaters.
-          // That way we can keep the current update and future updates separate.
-
+          }
 
           movePendingFibersToMemoized(root, lanes);
         }
@@ -27930,38 +27809,23 @@
       performUnitOfWork(workInProgress);
     }
   }
+  /**
+   * 执行并发模式下的根节点渲染
+   * @param {*} root
+   * @param {*} lanes
+   * @returns
+   */
+
 
   function renderRootConcurrent(root, lanes) {
     var prevExecutionContext = executionContext;
     executionContext |= RenderContext;
-    var prevDispatcher = pushDispatcher(); // If the root or lanes have changed, throw out the existing stack
-    // and prepare a fresh one. Otherwise we'll continue where we left off.
+    var prevDispatcher = pushDispatcher(); // 如果fiberRoot变动, 或者update.lane变动, 都会刷新栈帧, 丢弃上一次渲染进度
 
     if (workInProgressRoot !== root || workInProgressRootRenderLanes !== lanes) {
-      {
-        if (isDevToolsPresent) {
-          var memoizedUpdaters = root.memoizedUpdaters;
-
-          if (memoizedUpdaters.size > 0) {
-            restorePendingUpdaters(root, workInProgressRootRenderLanes);
-            memoizedUpdaters.clear();
-          } // At this point, move Fibers that scheduled the upcoming work from the Map to the Set.
-          // If we bailout on this work, we'll move them back (like above).
-          // It's important to move them now in case the work spawns more work at the same priority with different updaters.
-          // That way we can keep the current update and future updates separate.
-
-
-          movePendingFibersToMemoized(root, lanes);
-        }
-      }
-
       workInProgressTransitions = getTransitionsForLanes();
       resetRenderTimer();
       prepareFreshStack(root, lanes);
-    }
-
-    {
-      markRenderStarted(lanes);
     }
 
     do {
@@ -27975,8 +27839,7 @@
 
     resetContextDependencies();
     popDispatcher(prevDispatcher);
-    executionContext = prevExecutionContext;
-
+    executionContext = prevExecutionContext; // Check if the tree has completed.
 
     if (workInProgress !== null) {
       // Still work remaining.
@@ -27989,7 +27852,7 @@
       // Completed the tree.
       {
         markRenderStopped();
-      } // Set this to null to indicate there's no in-progress render.
+      } // 重置全局变量, 表明render结束
 
 
       workInProgressRoot = null;
@@ -28002,33 +27865,31 @@
 
 
   function workLoopConcurrent() {
-    // Perform work until Scheduler asks us to yield
+    // 可中断渲染原理
+    // 在 fiber 树构造过程中, 每构造完成一个单元, 都会检测一次超时
     while (workInProgress !== null && !shouldYield()) {
       performUnitOfWork(workInProgress);
     }
   }
+  /**
+   * Fiber Reconciler
+   *  遍历整个Fiber树
+   * 
+   * beginWork+completeWork  完成一个fiber节点的创建
+   * @param {*} unitOfWork   workInProgress：当前已创建的workInProgress fiber
+   */
+
 
   function performUnitOfWork(unitOfWork) {
-    // The current, flushed, state of this fiber is the alternate. Ideally
-    // nothing should rely on this, but relying on it here means that we don't
-    // need an additional field on the work in progress.
-    var current = unitOfWork.alternate;
-    setCurrentFiber(unitOfWork);
-    var next;
+    // 获取对应的“旧fiber”
+    var current = unitOfWork.alternate; // 如果有子节点，就返回子节点，否则返回null
+    // 递
 
-    if ( (unitOfWork.mode & ProfileMode) !== NoMode) {
-      startProfilerTimer(unitOfWork);
-      next = beginWork$1(current, unitOfWork, renderLanes$1);
-      stopProfilerTimerIfRunningAndRecordDelta(unitOfWork, true);
-    } else {
-      next = beginWork$1(current, unitOfWork, renderLanes$1);
-    }
-
-    resetCurrentFiber();
+    var next = beginWork$1(current, unitOfWork, renderLanes$1);
     unitOfWork.memoizedProps = unitOfWork.pendingProps;
 
     if (next === null) {
-      // If this doesn't spawn new work, complete the current work.
+      // 归
       completeUnitOfWork(unitOfWork);
     } else {
       workInProgress = next;
@@ -28151,15 +28012,20 @@
 
     return null;
   }
+  /**
+   * 调和输出阶段：处理副作用队列，将最新的Fiber树结构反映到DOM上
+   * @param {*} root
+   * @param {*} recoverableErrors
+   * @param {*} transitions
+   * @param {*} renderPriorityLevel
+   * @returns
+   */
+
 
   function commitRootImpl(root, recoverableErrors, transitions, renderPriorityLevel) {
+    // before mutation  主要做一些变量赋值，状态重置的工作
     do {
-      // `flushPassiveEffects` will call `flushSyncUpdateQueue` at the end, which
-      // means `flushPassiveEffects` will sometimes result in additional
-      // passive effects. So we need to keep flushing in a loop until there are
-      // no more pending effects.
-      // TODO: Might be better if `flushPassiveEffects` did not automatically
-      // flush synchronous work at the end, to avoid factoring hazards like this.
+      // 触发useEffect回调与其他同步任务。由于这些任务可能触发新的渲染，所以这里要一直遍历执行直到没有任务
       flushPassiveEffects();
     } while (rootWithPendingPassiveEffects !== null);
 
@@ -28167,9 +28033,11 @@
 
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
       throw new Error('Should not already be working.');
-    }
+    } // root指的是fiberRootNode，这里的finishedWork指的是当前应用的rootFiber
 
-    var finishedWork = root.finishedWork;
+
+    var finishedWork = root.finishedWork; // 凡是变量名带lane的都是优先级相关
+
     var lanes = root.finishedLanes;
 
     {
@@ -28177,18 +28045,7 @@
     }
 
     if (finishedWork === null) {
-
-      {
-        markCommitStopped();
-      }
-
       return null;
-    } else {
-      {
-        if (lanes === NoLanes) {
-          error('root.finishedLanes should not be empty during a commit. This is a ' + 'bug in React.');
-        }
-      }
     }
 
     root.finishedWork = null;
@@ -28260,12 +28117,7 @@
       var prevExecutionContext = executionContext;
       executionContext |= CommitContext; // Reset this to null before calling lifecycles
 
-      ReactCurrentOwner$2.current = null; // The commit phase is broken into several sub-phases. We do a separate pass
-      // of the effect list for each phase: all mutation effects come before all
-      // layout effects, and so on.
-      // The first phase a "before mutation" phase. We use this phase to read the
-      // state of the host tree right before we mutate it. This is where
-      // getSnapshotBeforeUpdate is called.
+      ReactCurrentOwner$2.current = null; // dom 变更之前, 主要处理副作用队列中带有Snapshot,Passive标记的fiber节点.
 
       var shouldFireAfterActiveInstanceBlur = commitBeforeMutationEffects(root, finishedWork);
 
@@ -28283,17 +28135,18 @@
       // componentWillUnmount, but before the layout phase, so that the finished
       // work is current during componentDidMount/Update.
 
-      root.current = finishedWork; // The next phase is the layout phase, where we call effects that read
+      root.current = finishedWork;
 
       {
         markLayoutEffectsStarted(lanes);
-      }
+      } // dom 变更后, 主要处理副作用队列中带有Update | Callback标记的fiber节点.
+
 
       commitLayoutEffects(finishedWork, root, lanes);
 
       {
         markLayoutEffectsStopped();
-      }
+      } // Tell Scheduler to yield at the end of the frame, so the browser has an
       // opportunity to paint.
 
 
@@ -28390,9 +28243,9 @@
 
     if (hasUncaughtError) {
       hasUncaughtError = false;
-      var error$1 = firstUncaughtError;
+      var error = firstUncaughtError;
       firstUncaughtError = null;
-      throw error$1;
+      throw error;
     } // If the passive effects are the result of a discrete render, flush them
     // synchronously at the end of the current task so that the result is
     // immediately observable. Otherwise, we assume that they are not
@@ -28526,7 +28379,6 @@
     }
 
     {
-      isFlushingPassiveEffects = true;
       didScheduleUpdateDuringPassiveEffects = false;
     }
 
@@ -28573,8 +28425,6 @@
       } else {
         nestedPassiveUpdateCount = 0;
       }
-
-      isFlushingPassiveEffects = false;
       didScheduleUpdateDuringPassiveEffects = false;
     } // TODO: Move to commitPassiveMountEffects
 
@@ -28625,7 +28475,6 @@
   function captureCommitPhaseError(sourceFiber, nearestMountedAncestor, error$1) {
     {
       reportUncaughtErrorInDEV(error$1);
-      setIsRunningInsertionEffect(false);
     }
 
     if (sourceFiber.tag === HostRoot) {
@@ -28919,107 +28768,7 @@
       }
     }
   }
-  var beginWork$1;
-
-  {
-    var dummyFiber = null;
-
-    beginWork$1 = function (current, unitOfWork, lanes) {
-      // If a component throws an error, we replay it again in a synchronously
-      // dispatched event, so that the debugger will treat it as an uncaught
-      // error See ReactErrorUtils for more information.
-      // Before entering the begin phase, copy the work-in-progress onto a dummy
-      // fiber. If beginWork throws, we'll use this to reset the state.
-      var originalWorkInProgressCopy = assignFiberPropertiesInDEV(dummyFiber, unitOfWork);
-
-      try {
-        return beginWork(current, unitOfWork, lanes);
-      } catch (originalError) {
-        if (didSuspendOrErrorWhileHydratingDEV() || originalError !== null && typeof originalError === 'object' && typeof originalError.then === 'function') {
-          // Don't replay promises.
-          // Don't replay errors if we are hydrating and have already suspended or handled an error
-          throw originalError;
-        } // Keep this code in sync with handleError; any changes here must have
-        // corresponding changes there.
-
-
-        resetContextDependencies();
-        resetHooksAfterThrow(); // Don't reset current debug fiber, since we're about to work on the
-        // same fiber again.
-        // Unwind the failed stack frame
-
-        unwindInterruptedWork(current, unitOfWork); // Restore the original properties of the fiber.
-
-        assignFiberPropertiesInDEV(unitOfWork, originalWorkInProgressCopy);
-
-        if ( unitOfWork.mode & ProfileMode) {
-          // Reset the profiler timer.
-          startProfilerTimer(unitOfWork);
-        } // Run beginWork again.
-
-
-        invokeGuardedCallback(null, beginWork, null, current, unitOfWork, lanes);
-
-        if (hasCaughtError()) {
-          var replayError = clearCaughtError();
-
-          if (typeof replayError === 'object' && replayError !== null && replayError._suppressLogging && typeof originalError === 'object' && originalError !== null && !originalError._suppressLogging) {
-            // If suppressed, let the flag carry over to the original error which is the one we'll rethrow.
-            originalError._suppressLogging = true;
-          }
-        } // We always throw the original error in case the second render pass is not idempotent.
-        // This can happen if a memoized function or CommonJS module doesn't throw after first invocation.
-
-
-        throw originalError;
-      }
-    };
-  }
-
-  var didWarnAboutUpdateInRender = false;
-  var didWarnAboutUpdateInRenderForAnotherComponent;
-
-  {
-    didWarnAboutUpdateInRenderForAnotherComponent = new Set();
-  }
-
-  function warnAboutRenderPhaseUpdatesInDEV(fiber) {
-    {
-      if (isRendering && !getIsUpdatingOpaqueValueInRenderPhaseInDEV()) {
-        switch (fiber.tag) {
-          case FunctionComponent:
-          case ForwardRef:
-          case SimpleMemoComponent:
-            {
-              var renderingComponentName = workInProgress && getComponentNameFromFiber(workInProgress) || 'Unknown'; // Dedupe by the rendering component because it's the one that needs to be fixed.
-
-              var dedupeKey = renderingComponentName;
-
-              if (!didWarnAboutUpdateInRenderForAnotherComponent.has(dedupeKey)) {
-                didWarnAboutUpdateInRenderForAnotherComponent.add(dedupeKey);
-                var setStateComponentName = getComponentNameFromFiber(fiber) || 'Unknown';
-
-                error('Cannot update a component (`%s`) while rendering a ' + 'different component (`%s`). To locate the bad setState() call inside `%s`, ' + 'follow the stack trace as described in https://reactjs.org/link/setstate-in-render', setStateComponentName, renderingComponentName, renderingComponentName);
-              }
-
-              break;
-            }
-
-          case ClassComponent:
-            {
-              if (!didWarnAboutUpdateInRender) {
-                error('Cannot update during an existing state transition (such as ' + 'within `render`). Render methods should be a pure ' + 'function of props and state.');
-
-                didWarnAboutUpdateInRender = true;
-              }
-
-              break;
-            }
-        }
-      }
-    }
-  }
-
+  var beginWork$1 = beginWork;
   function restorePendingUpdaters(root, lanes) {
     {
       if (isDevToolsPresent) {
@@ -29061,65 +28810,6 @@
   function shouldForceFlushFallbacksInDEV() {
     // Never force flush in production. This function should get stripped out.
     return  ReactCurrentActQueue$1.current !== null;
-  }
-
-  function warnIfUpdatesNotWrappedWithActDEV(fiber) {
-    {
-      if (fiber.mode & ConcurrentMode) {
-        if (!isConcurrentActEnvironment()) {
-          // Not in an act environment. No need to warn.
-          return;
-        }
-      } else {
-        // Legacy mode has additional cases where we suppress a warning.
-        if (!isLegacyActEnvironment()) {
-          // Not in an act environment. No need to warn.
-          return;
-        }
-
-        if (executionContext !== NoContext) {
-          // Legacy mode doesn't warn if the update is batched, i.e.
-          // batchedUpdates or flushSync.
-          return;
-        }
-
-        if (fiber.tag !== FunctionComponent && fiber.tag !== ForwardRef && fiber.tag !== SimpleMemoComponent) {
-          // For backwards compatibility with pre-hooks code, legacy mode only
-          // warns for updates that originate from a hook.
-          return;
-        }
-      }
-
-      if (ReactCurrentActQueue$1.current === null) {
-        var previousFiber = current;
-
-        try {
-          setCurrentFiber(fiber);
-
-          error('An update to %s inside a test was not wrapped in act(...).\n\n' + 'When testing, code that causes React state updates should be ' + 'wrapped into act(...):\n\n' + 'act(() => {\n' + '  /* fire events that update state */\n' + '});\n' + '/* assert on the output */\n\n' + "This ensures that you're testing the behavior the user would see " + 'in the browser.' + ' Learn more at https://reactjs.org/link/wrap-tests-with-act', getComponentNameFromFiber(fiber));
-        } finally {
-          if (previousFiber) {
-            setCurrentFiber(fiber);
-          } else {
-            resetCurrentFiber();
-          }
-        }
-      }
-    }
-  }
-
-  function warnIfSuspenseResolutionNotWrappedWithActDEV(root) {
-    {
-      if (root.tag !== LegacyRoot && isConcurrentActEnvironment() && ReactCurrentActQueue$1.current === null) {
-        error('A suspended resource finished loading inside a test, but the event ' + 'was not wrapped in act(...).\n\n' + 'When testing, code that resolves suspended data should be wrapped ' + 'into act(...):\n\n' + 'act(() => {\n' + '  /* finish loading suspended data */\n' + '});\n' + '/* assert on the output */\n\n' + "This ensures that you're testing the behavior the user would see " + 'in the browser.' + ' Learn more at https://reactjs.org/link/wrap-tests-with-act');
-      }
-    }
-  }
-
-  function setIsRunningInsertionEffect(isRunning) {
-    {
-      isRunningInsertionEffect = isRunning;
-    }
   }
 
   /* eslint-disable react-internal/prod-error-codes */
@@ -29523,10 +29213,7 @@
     return false;
   }
 
-  var hasBadMapPolyfill;
-
   {
-    hasBadMapPolyfill = false;
 
     try {
       var nonExtensibleObject = Object.preventExtensions({});
@@ -29536,10 +29223,9 @@
       new Set([nonExtensibleObject]);
       /* eslint-enable no-new */
     } catch (e) {
-      // TODO: Consider warning about bad polyfills
-      hasBadMapPolyfill = true;
     }
-  }
+  } // 一个Fiber对象代表一个即将渲染或者已经渲染的组件(ReactElement), 一个组件可能对应两个fiber(current和WorkInProgress)
+
 
   function FiberNode(tag, pendingProps, key, mode) {
     // Instance
@@ -29556,7 +29242,8 @@
     this.ref = null;
     this.pendingProps = pendingProps;
     this.memoizedProps = null;
-    this.updateQueue = null;
+    this.updateQueue = null; // 链式队列
+
     this.memoizedState = null;
     this.dependencies = null;
     this.mode = mode; // Effects
@@ -29564,47 +29251,11 @@
     this.flags = NoFlags;
     this.subtreeFlags = NoFlags;
     this.deletions = null;
-    this.lanes = NoLanes;
-    this.childLanes = NoLanes;
+    this.lanes = NoLanes; // 代表本节点的优先级
+
+    this.childLanes = NoLanes; // 代表子节点的优先级
+
     this.alternate = null;
-
-    {
-      // Note: The following is done to avoid a v8 performance cliff.
-      //
-      // Initializing the fields below to smis and later updating them with
-      // double values will cause Fibers to end up having separate shapes.
-      // This behavior/bug has something to do with Object.preventExtension().
-      // Fortunately this only impacts DEV builds.
-      // Unfortunately it makes React unusably slow for some applications.
-      // To work around this, initialize the fields below with doubles.
-      //
-      // Learn more about this here:
-      // https://github.com/facebook/react/issues/14365
-      // https://bugs.chromium.org/p/v8/issues/detail?id=8538
-      this.actualDuration = Number.NaN;
-      this.actualStartTime = Number.NaN;
-      this.selfBaseDuration = Number.NaN;
-      this.treeBaseDuration = Number.NaN; // It's okay to replace the initial doubles with smis after initialization.
-      // This won't trigger the performance cliff mentioned above,
-      // and it simplifies other profiler code (including DevTools).
-
-      this.actualDuration = 0;
-      this.actualStartTime = -1;
-      this.selfBaseDuration = 0;
-      this.treeBaseDuration = 0;
-    }
-
-    {
-      // This isn't directly used but is handy for debugging internals:
-      this._debugSource = null;
-      this._debugOwner = null;
-      this._debugNeedsRemount = false;
-      this._debugHookTypes = null;
-
-      if (!hasBadMapPolyfill && typeof Object.preventExtensions === 'function') {
-        Object.preventExtensions(this);
-      }
-    }
   } // This is a constructor function, rather than a POJO constructor, still
   // please ensure we do the following:
   // 1) Nobody should add any instance methods on this. Instance methods can be
@@ -30070,55 +29721,6 @@
     return fiber;
   } // Used for stashing WIP properties to replay failed work in DEV.
 
-  function assignFiberPropertiesInDEV(target, source) {
-    if (target === null) {
-      // This Fiber's initial properties will always be overwritten.
-      // We only use a Fiber to ensure the same hidden class so DEV isn't slow.
-      target = createFiber(IndeterminateComponent, null, null, NoMode);
-    } // This is intentionally written as a list of all properties.
-    // We tried to use Object.assign() instead but this is called in
-    // the hottest path, and Object.assign() was too slow:
-    // https://github.com/facebook/react/issues/12502
-    // This code is DEV-only so size is not a concern.
-
-
-    target.tag = source.tag;
-    target.key = source.key;
-    target.elementType = source.elementType;
-    target.type = source.type;
-    target.stateNode = source.stateNode;
-    target.return = source.return;
-    target.child = source.child;
-    target.sibling = source.sibling;
-    target.index = source.index;
-    target.ref = source.ref;
-    target.pendingProps = source.pendingProps;
-    target.memoizedProps = source.memoizedProps;
-    target.updateQueue = source.updateQueue;
-    target.memoizedState = source.memoizedState;
-    target.dependencies = source.dependencies;
-    target.mode = source.mode;
-    target.flags = source.flags;
-    target.subtreeFlags = source.subtreeFlags;
-    target.deletions = source.deletions;
-    target.lanes = source.lanes;
-    target.childLanes = source.childLanes;
-    target.alternate = source.alternate;
-
-    {
-      target.actualDuration = source.actualDuration;
-      target.actualStartTime = source.actualStartTime;
-      target.selfBaseDuration = source.selfBaseDuration;
-      target.treeBaseDuration = source.treeBaseDuration;
-    }
-
-    target._debugSource = source._debugSource;
-    target._debugOwner = source._debugOwner;
-    target._debugNeedsRemount = source._debugNeedsRemount;
-    target._debugHookTypes = source._debugHookTypes;
-    return target;
-  }
-
   function FiberRootNode(containerInfo, tag, hydrate, identifierPrefix, onRecoverableError) {
     this.tag = tag;
     this.containerInfo = containerInfo;
@@ -30198,14 +29800,7 @@
 
     {
       var initialCache = createCache();
-      retainCache(initialCache); // The pooledCache is a fresh cache instance that is used temporarily
-      // for newly mounted boundaries during a render. In general, the
-      // pooledCache is always cleared from the root at the end of a render:
-      // it is either released when render commits, or moved to an Offscreen
-      // component if rendering suspends. Because the lifetime of the pooled
-      // cache is distinct from the main memoizedState.cache, it must be
-      // retained separately.
-
+      retainCache(initialCache);
       root.pooledCache = initialCache;
       retainCache(initialCache);
       var initialState = {
@@ -30248,11 +29843,9 @@
     };
   }
 
-  var didWarnAboutNestedUpdates;
   var didWarnAboutFindNodeInStrictMode;
 
   {
-    didWarnAboutNestedUpdates = false;
     didWarnAboutFindNodeInStrictMode = {};
   }
 
@@ -30327,7 +29920,8 @@
 
   function createContainer(containerInfo, tag, hydrationCallbacks, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError, transitionCallbacks) {
     var hydrate = false;
-    var initialChildren = null;
+    var initialChildren = null; // 创建了react应用的首个fiber对象, 称为HostRootFiber(fiber.tag = HostRoot)
+
     return createFiberRoot(containerInfo, tag, hydrate, initialChildren, hydrationCallbacks, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError);
   }
   function createHydrationContainer(initialChildren, // TODO: Remove `callback` when we delete legacy mode.
@@ -30351,18 +29945,22 @@
     scheduleInitialHydrationOnRoot(root, lane, eventTime);
     return root;
   }
+  /**
+   * 更新dom容器中的内容
+   * @param {*} element React组件
+   * @param {*} container DOM容器的内容根节点对象  FiberRoot
+   * @param {*} parentComponent 父组件实例
+   * @param {*} callback 回调函数
+   * @returns
+   */
+
   function updateContainer(element, container, parentComponent, callback) {
-    {
-      onScheduleRoot(container, element);
-    }
+    var current = container.current; // 当前容器的FiberRoot对象
 
-    var current$1 = container.current;
-    var eventTime = requestEventTime();
-    var lane = requestUpdateLane(current$1);
+    var eventTime = requestEventTime(); // 获取当前事件时间
+    // 1、创建一个优先级变量（车道模型）
 
-    {
-      markRenderScheduled(lane);
-    }
+    var lane = requestUpdateLane(current); // 获取组件树的上下文，并将其保存在容器对象中
 
     var context = getContextForSubtree(parentComponent);
 
@@ -30370,18 +29968,10 @@
       container.context = context;
     } else {
       container.pendingContext = context;
-    }
+    } // 2、根据车道优先级，创建update对象，并加入fiber.updateQueue.pending队列
 
-    {
-      if (isRendering && current !== null && !didWarnAboutNestedUpdates) {
-        didWarnAboutNestedUpdates = true;
 
-        error('Render methods should be a pure function of props and state; ' + 'triggering nested component updates from render is not allowed. ' + 'If necessary, trigger nested updates in componentDidUpdate.\n\n' + 'Check the render method of %s.', getComponentNameFromFiber(current) || 'Unknown');
-      }
-    }
-
-    var update = createUpdate(eventTime, lane); // Caution: React DevTools currently depends on this property
-    // being called "element".
+    var update = createUpdate(eventTime, lane); // 存储要更新的React组件
 
     update.payload = {
       element: element
@@ -30389,20 +29979,16 @@
     callback = callback === undefined ? null : callback;
 
     if (callback !== null) {
-      {
-        if (typeof callback !== 'function') {
-          error('render(...): Expected the last optional `callback` argument to be a ' + 'function. Instead received: %s.', callback);
-        }
-      }
-
       update.callback = callback;
-    }
+    } // 将更新对象添加到容器的更新队列中
 
-    var root = enqueueUpdate$1(current$1, update, lane);
+
+    var root = enqueueUpdate$1(current, update, lane);
 
     if (root !== null) {
-      scheduleUpdateOnFiber(root, current$1, lane, eventTime);
-      entangleTransitions(root, current$1, lane);
+      // 3、进入调和运作流程的”输入“环节
+      scheduleUpdateOnFiber(root, current, lane, eventTime);
+      entangleTransitions(root, current, lane);
     }
 
     return lane;
@@ -30827,35 +30413,19 @@
   function ReactDOMRoot(internalRoot) {
     this._internalRoot = internalRoot;
   }
+  /**
+   * render 函数实现，用于将React组件渲染到指定的DOM容器上
+   */
+
 
   ReactDOMHydrationRoot.prototype.render = ReactDOMRoot.prototype.render = function (children) {
+    // 当前容器的内部根节点 div#root
     var root = this._internalRoot;
 
     if (root === null) {
       throw new Error('Cannot update an unmounted root.');
-    }
+    } // 更新容器中的内容
 
-    {
-      if (typeof arguments[1] === 'function') {
-        error('render(...): does not support the second callback argument. ' + 'To execute a side effect after rendering, declare it in a component body with useEffect().');
-      } else if (isValidContainer(arguments[1])) {
-        error('You passed a container to the second argument of root.render(...). ' + "You don't need to pass it again since you already passed it to create the root.");
-      } else if (typeof arguments[1] !== 'undefined') {
-        error('You passed a second argument to root.render(...) but it only accepts ' + 'one argument.');
-      }
-
-      var container = root.containerInfo;
-
-      if (container.nodeType !== COMMENT_NODE) {
-        var hostInstance = findHostInstanceWithNoPortals(root.current);
-
-        if (hostInstance) {
-          if (hostInstance.parentNode !== container) {
-            error('render(...): It looks like the React-rendered content of the ' + 'root container was removed without using React. This is not ' + 'supported and will cause errors. Instead, call ' + "root.unmount() to empty a root's container.");
-          }
-        }
-      }
-    }
 
     updateContainer(children, root, null, null);
   };
@@ -30899,16 +30469,6 @@
     var transitionCallbacks = null;
 
     if (options !== null && options !== undefined) {
-      {
-        if (options.hydrate) {
-          warn('hydrate through createRoot is deprecated. Use ReactDOMClient.hydrateRoot(container, <App />) instead.');
-        } else {
-          if (typeof options === 'object' && options !== null && options.$$typeof === REACT_ELEMENT_TYPE) {
-            error('You passed a JSX element to createRoot. You probably meant to ' + 'call root.render instead. ' + 'Example usage:\n\n' + '  let root = createRoot(domContainer);\n' + '  root.render(<App />);');
-          }
-        }
-      }
-
       if (options.unstable_strictMode === true) {
         isStrictMode = true;
       }
@@ -30924,9 +30484,11 @@
       if (options.unstable_transitionCallbacks !== undefined) {
         transitionCallbacks = options.unstable_transitionCallbacks;
       }
-    }
+    } // 1. 创建fiberRoot
 
-    var root = createContainer(container, ConcurrentRoot, null, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError);
+
+    var root = createContainer(container, ConcurrentRoot, null, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError); // 2. 标记dom对象, 把dom和fiber对象关联起来
+
     markContainerAsRoot(root.current, container);
     var rootContainerElement = container.nodeType === COMMENT_NODE ? container.parentNode : container;
     listenToAllSupportedEvents(rootContainerElement);
@@ -31342,12 +30904,6 @@
   };
 
   function createRoot$1(container, options) {
-    {
-      if (!Internals.usingClientEntryPoint && !true) {
-        error('You are importing createRoot from "react-dom" which is not supported. ' + 'You should instead import it from "react-dom/client".');
-      }
-    }
-
     return createRoot(container, options);
   }
 

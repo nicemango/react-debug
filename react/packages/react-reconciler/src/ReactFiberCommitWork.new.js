@@ -106,10 +106,11 @@ import {
   commitHiddenCallbacks,
   commitCallbacks,
 } from './ReactFiberClassUpdateQueue.new';
+// React用于与宿主环境（浏览器、RN等）进行交互的接口，用于执行DOM操作、事件处理、样式计算等宿主环境相关的操作
 import {
-  getPublicInstance,
-  supportsMutation,
-  supportsPersistence,
+  getPublicInstance, // 获取组件实例的公共实例对象。比如在浏览器环境下，就是DOM元素
+  supportsMutation, // 检查当前环境是否支持 DOM 变更相关的操作。
+  supportsPersistence, // 检查当前环境是否支持持久化相关的操作。
   supportsHydration,
   commitMount,
   commitUpdate,
@@ -135,7 +136,8 @@ import {
   prepareScopeUpdate,
   prepareForCommit,
   beforeActiveInstanceBlur,
-} from './ReactFiberHostConfig';
+} from './ReactFiberHostConfig'; 
+
 import {
   captureCommitPhaseError,
   resolveRetryWakeable,
@@ -304,13 +306,23 @@ function safelyCallDestroy(
 let focusedInstanceHandle: null | Fiber = null;
 let shouldFireAfterActiveInstanceBlur: boolean = false;
 
+/**
+ * 在DOM树中执行“mutation”之前提交一些副作用
+ * React中的mutation指的是对DOM树进行插入、删除和更新等操作
+ * @param {*} root
+ * @param {*} firstChild
+ * @returns
+ */
 export function commitBeforeMutationEffects(
-  root: FiberRoot,
-  firstChild: Fiber,
+  root: FiberRoot, // Fiber树的根节点
+  firstChild: Fiber, //第一个子节点
 ) {
+  // 准备将组件会更新应用到DOM树
   focusedInstanceHandle = prepareForCommit(root.containerInfo);
 
+  // 将全局变量nextEffect设置为第一个子节点
   nextEffect = firstChild;
+  // 开始执行提交前的副作用（生命周期钩子函数+red回调函数等）
   commitBeforeMutationEffects_begin();
 
   // We no longer need to track the active instance fiber
@@ -1580,15 +1592,32 @@ function getHostSibling(fiber: Fiber): ?Instance {
   }
 }
 
+/**
+ * 在DOM树中插入新的节点
+ * @param {*} finishedWork Fiber节点完成所有更新并准备提交DOM树之前的一个状态
+ * @returns
+ *
+ * finishedWork并不是Fiber节点的一种类型，而是在Fiber节点更新过程中的一个中间状态
+ * React更新过程中，Fiber节点会经历多个阶段：
+ * 收集更新-》构建Fiber树-》执行生命周期函数-》更新状态-》计算副作用-》提交更新
+ *
+ * Fiber的其它状态：表示不同的组件状态和更新信息
+ * workInProgress:正在进行更新的Fiber节点
+ * current：上一次更新后的Fiber节点
+ * pendingProps：等待更新的新的props
+ * memoizedState：上一次更新后的state
+ * altenate：当前Fiber节点对应的备用节点
+ *
+ */
 function commitPlacement(finishedWork: Fiber): void {
   if (!supportsMutation) {
     return;
   }
 
-  // Recursively insert all host nodes into the parent.
+  // 获取父节点
   const parentFiber = getHostParentFiber(finishedWork);
 
-  // Note: these two variables *must* always be updated together.
+  // 不同类型不同操作
   switch (parentFiber.tag) {
     case HostComponent: {
       const parent: Instance = parentFiber.stateNode;
@@ -1652,6 +1681,12 @@ function insertOrAppendPlacementNodeIntoContainer(
   }
 }
 
+/**
+ * 用于将节点插入到DOM树中的正确位置
+ * @param {*} node  要插入的节点node
+ * @param {*} before 该节点要插入到哪个节点之前
+ * @param {*} parent 要插入到哪个节点的子节点列表中parent
+ */
 function insertOrAppendPlacementNode(
   node: Fiber,
   before: ?Instance,
@@ -1661,6 +1696,7 @@ function insertOrAppendPlacementNode(
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost) {
     const stateNode = node.stateNode;
+    // 如果before存在，则在before之前插入，否则在parent的子节点列表末尾插入
     if (before) {
       insertBefore(parent, stateNode, before);
     } else {
@@ -2143,6 +2179,12 @@ export function isSuspenseBoundaryBeingHidden(
   return false;
 }
 
+/**
+ * 在DOM树中提交已完成的副作用
+ * @param {*} root
+ * @param {*} finishedWork
+ * @param {*} committedLanes
+ */
 export function commitMutationEffects(
   root: FiberRoot,
   finishedWork: Fiber,
@@ -2152,6 +2194,7 @@ export function commitMutationEffects(
   inProgressRoot = root;
 
   setCurrentDebugFiberInDEV(finishedWork);
+  // 开始在DOM树中提交已完成的副作用
   commitMutationEffectsOnFiber(finishedWork, root, committedLanes);
   setCurrentDebugFiberInDEV(finishedWork);
 
@@ -2585,6 +2628,12 @@ function commitReconciliationEffects(finishedWork: Fiber) {
   }
 }
 
+/**
+ * 在DOM树中提交布局副作用
+ * @param {*} finishedWork
+ * @param {*} root
+ * @param {*} committedLanes
+ */
 export function commitLayoutEffects(
   finishedWork: Fiber,
   root: FiberRoot,

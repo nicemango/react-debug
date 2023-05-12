@@ -270,6 +270,8 @@ import {
   pushRootMarkerInstance,
 } from './ReactFiberTracingMarkerComponent.new';
 
+const TAG = 'ReactFiberBeginWork 🚀🚀🚀:';
+
 const ReactCurrentOwner = ReactSharedInternals.ReactCurrentOwner;
 
 let didReceiveUpdate: boolean = false;
@@ -1044,6 +1046,12 @@ function updateProfiler(
   return workInProgress.child;
 }
 
+/**
+ * 标记组件是否有ref属性
+ * 它会检查当前组件和正在工作的组件是否具有不同的ref属性，如果是，则设置相应的标志位，以便在后续的渲染和更新中处理ref属性
+ * @param {*} current
+ * @param {*} workInProgress
+ */
 function markRef(current: Fiber | null, workInProgress: Fiber) {
   const ref = workInProgress.ref;
   if (
@@ -1390,6 +1398,7 @@ function updateHostRoot(current, workInProgress, renderLanes) {
     throw new Error('Should have a current fiber. This is a bug in React.');
   }
 
+  // 1. 状态计算, 更新整合到 workInProgress.memoizedState中来
   const nextProps = workInProgress.pendingProps;
   const prevState = workInProgress.memoizedState;
   const prevChildren = prevState.element;
@@ -1533,38 +1542,45 @@ function mountHostRootWithoutHydrating(
   return workInProgress.child;
 }
 
+/**
+ * 更新宿主组件
+ * 宿主组件Host Component：宿主环境提供的原生组件，例如div、span、img等。宿主组件是React应用程序中的最底层组件，它们是React应用程序和宿主环境之间的桥梁，负责将React元素渲染到宿主环境中。
+ */
 function updateHostComponent(
   current: Fiber | null,
   workInProgress: Fiber,
   renderLanes: Lanes,
 ) {
+  // 将宿主组件的上下文环境推入上下文环境栈中
   pushHostContext(workInProgress);
 
+  //如果当前Fiber节点为null，调用tryToClaimNextHydratableInstance函数，尝试获取下一个可水化的实例。
   if (current === null) {
     tryToClaimNextHydratableInstance(workInProgress);
   }
 
+  // 获取宿主组件的类型和属性
   const type = workInProgress.type;
   const nextProps = workInProgress.pendingProps;
   const prevProps = current !== null ? current.memoizedProps : null;
 
+  // 文本内容处理是一个优化：文本内容无需复杂计算和布局，直接渲染到DOM中，避免创建不必要的Fiber节点
+  // 如果宿主组件的子节点是文本内容，将子节点设置为null。
   let nextChildren = nextProps.children;
   const isDirectTextChild = shouldSetTextContent(type, nextProps);
 
   if (isDirectTextChild) {
-    // We special case a direct text child of a host node. This is a common
-    // case. We won't handle it as a reified child. We will instead handle
-    // this in the host environment that also has access to this prop. That
-    // avoids allocating another HostText fiber and traversing it.
     nextChildren = null;
   } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
-    // If we're switching from a direct text child to a normal child, or to
-    // empty, we need to schedule the text content to be reset.
+    // 如果宿主组件的子节点从文本内容切换到其他的Fiber节点，或者从其他的Fiber节点切换到文本内容或空节点，设置ContentReset标志位，以便在后续的更新中重置文本内容。
     workInProgress.flags |= ContentReset;
   }
 
+  // 宿主组件的ref属性
   markRef(current, workInProgress);
+  // 更新宿主组件的子节点
   reconcileChildren(current, workInProgress, nextChildren, renderLanes);
+  // 返回宿主组件的第一个子节点
   return workInProgress.child;
 }
 
@@ -3832,24 +3848,6 @@ function beginWork(
   workInProgress: Fiber,
   renderLanes: Lanes,
 ): Fiber | null {
-  if (__DEV__) {
-    if (workInProgress._debugNeedsRemount && current !== null) {
-      // This will restart the begin phase with a new fiber.
-      return remountFiber(
-        current,
-        workInProgress,
-        createFiberFromTypeAndProps(
-          workInProgress.type,
-          workInProgress.key,
-          workInProgress.pendingProps,
-          workInProgress._debugOwner || null,
-          workInProgress.mode,
-          workInProgress.lanes,
-        ),
-      );
-    }
-  }
-
   if (current !== null) {
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
@@ -3973,6 +3971,7 @@ function beginWork(
     case HostRoot:
       return updateHostRoot(current, workInProgress, renderLanes);
     case HostComponent:
+      console.log(TAG, current, workInProgress, renderLanes);
       return updateHostComponent(current, workInProgress, renderLanes);
     case HostText:
       return updateHostText(current, workInProgress);

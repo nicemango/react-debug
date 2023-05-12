@@ -710,78 +710,20 @@
     }
   }
   /**
-   * Factory method to create a new React element. This no longer adheres to
-   * the class pattern, so do not use new to call it. Also, instanceof check
-   * will not work. Instead test $$typeof field against Symbol.for('react.element') to check
-   * if something is a React Element.
+   * 创建一个新的React元素
    *
-   * @param {*} type
-   * @param {*} props
-   * @param {*} key
-   * @param {string|object} ref
-   * @param {*} owner
-   * @param {*} self A *temporary* helper to detect places where `this` is
-   * different from the `owner` when React.createElement is called, so that we
-   * can warn. We want to get rid of owner and replace string `ref`s with arrow
-   * functions, and as long as `this` and owner are the same, there will be no
-   * change in behavior.
-   * @param {*} source An annotation object (added by a transpiler or otherwise)
-   * indicating filename, line number, and/or other information.
-   * @internal
    */
 
 
   var ReactElement = function (type, key, ref, self, source, owner, props) {
     var element = {
-      // This tag allows us to uniquely identify this as a React Element
       $$typeof: REACT_ELEMENT_TYPE,
-      // Built-in properties that belong on the element
       type: type,
       key: key,
       ref: ref,
       props: props,
-      // Record the component responsible for creating this element.
       _owner: owner
     };
-
-    {
-      // The validation flag is currently mutative. We put it on
-      // an external backing store so that we can freeze the whole object.
-      // This can be replaced with a WeakMap once they are implemented in
-      // commonly used development environments.
-      element._store = {}; // To make comparing ReactElements easier for testing purposes, we make
-      // the validation flag non-enumerable (where possible, which should
-      // include every environment we run tests in), so the test framework
-      // ignores it.
-
-      Object.defineProperty(element._store, 'validated', {
-        configurable: false,
-        enumerable: false,
-        writable: true,
-        value: false
-      }); // self and source are DEV only properties.
-
-      Object.defineProperty(element, '_self', {
-        configurable: false,
-        enumerable: false,
-        writable: false,
-        value: self
-      }); // Two elements created in two different places should be considered
-      // equal for testing purposes and therefore we hide it from enumeration.
-
-      Object.defineProperty(element, '_source', {
-        configurable: false,
-        enumerable: false,
-        writable: false,
-        value: source
-      });
-
-      if (Object.freeze) {
-        Object.freeze(element.props);
-        Object.freeze(element);
-      }
-    }
-
     return element;
   };
   /**
@@ -2521,7 +2463,7 @@
 
   var enableSchedulerDebugging = false;
   var enableProfiling = false;
-  var frameYieldMs = 5;
+  var frameYieldMs = 5; // 一帧绘制的时间
 
   function push(heap, node) {
     var index = heap.length;
@@ -2644,10 +2586,12 @@
   var NORMAL_PRIORITY_TIMEOUT = 5000;
   var LOW_PRIORITY_TIMEOUT = 10000; // Never times out
 
-  var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt; // Tasks are stored on a min heap
+  var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt; // 任务队列管理   小顶堆数组
 
-  var taskQueue = [];
-  var timerQueue = []; // Incrementing id counter. Used to maintain insertion order.
+  var taskQueue = []; // 用于存储  需要立即执行的任务或需要优先处理的任务
+
+  var timerQueue = []; // 用于存储需要  延时执行的定时器
+  // Incrementing id counter. Used to maintain insertion order.
 
   var taskIdCounter = 1; // Pausing the scheduler is useful for debugging.
   var currentTask = null;
@@ -2702,10 +2646,17 @@
       }
     }
   }
+  /**
+   * 执行调度器中的任务
+   * 并在执行之前和之后做一些初始化和清理操作
+   * @param {*} hasTimeRemaining
+   * @param {*} initialTime
+   * @returns
+   */
+
 
   function flushWork(hasTimeRemaining, initialTime) {
-
-
+    // We'll need a host callback the next time work is scheduled.
     isHostCallbackScheduled = false;
 
     if (isHostTimeoutScheduled) {
@@ -2740,13 +2691,27 @@
       isPerformingWork = false;
     }
   }
+  /**
+   * React工作循环之一：任务调度循环
+   * 执行调度器中的任务
+   * 在执行期间处理任务队列和定时器队列
+   * @param {*} hasTimeRemaining
+   * @param {*} initialTime
+   * @returns
+   */
+
 
   function workLoop(hasTimeRemaining, initialTime) {
     var currentTime = initialTime;
     advanceTimers(currentTime);
-    currentTask = peek(taskQueue);
+    currentTask = peek(taskQueue); //在此处实现了时间切片(time slicing)和fiber树的可中断渲染
+    // 每一次while循环的退出就是一个时间切片
+    // 队列被完全清空: 这种情况就是很正常的情况, 一气呵成, 没有遇到任何阻碍.
 
     while (currentTask !== null && !(enableSchedulerDebugging )) {
+      //执行超时: 在消费taskQueue时, 在执行task.callback之前, 都会检测是否超时, 所以超时检测是以task为单位.
+      // 如果某个task.callback执行时间太长(如: fiber树很大, 或逻辑很重)也会造成超时
+      // 所以在执行task.callback过程中, 也需要一种机制检测是否超时, 如果超时了就立刻暂停task.callback的执行.
       if (currentTask.expirationTime > currentTime && (!hasTimeRemaining || shouldYieldToHost())) {
         // This currentTask hasn't expired, and we've reached the deadline.
         break;
@@ -2857,8 +2822,17 @@
       }
     };
   }
+  /**
+   * 向任务队列中添加一个新的任务
+   * @param {*} priorityLevel  任务优先级
+   * @param {*} callback  任务回调函数
+   * @param {*} options  任务的选项  例如延迟时间
+   * @returns
+   */
+
 
   function unstable_scheduleCallback(priorityLevel, callback, options) {
+    // 1. 获取当前时间
     var currentTime = getCurrentTime();
     var startTime;
 
@@ -2872,7 +2846,8 @@
       }
     } else {
       startTime = currentTime;
-    }
+    } // 2. 根据传入的优先级, 设置任务的过期时间 expirationTime
+
 
     var timeout;
 
@@ -2899,19 +2874,26 @@
         break;
     }
 
-    var expirationTime = startTime + timeout;
+    var expirationTime = startTime + timeout; // 3. 创建新任务
+
     var newTask = {
       id: taskIdCounter++,
+      // id: 一个自增编号
       callback: callback,
+      // callback: 传入的回调函数
       priorityLevel: priorityLevel,
+      // priorityLevel: 优先级等级
       startTime: startTime,
+      // startTime: 创建task时的当前时间
       expirationTime: expirationTime,
+      // expirationTime: task的过期时间, 优先级越高 expirationTime = startTime + timeout 越小
       sortIndex: -1
     };
 
     if (startTime > currentTime) {
       // This is a delayed task.
-      newTask.sortIndex = startTime;
+      newTask.sortIndex = startTime; // 4. 加入任务队列
+
       push(timerQueue, newTask);
 
       if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
@@ -2927,9 +2909,9 @@
         requestHostTimeout(handleTimeout, startTime - currentTime);
       }
     } else {
-      newTask.sortIndex = expirationTime;
+      newTask.sortIndex = expirationTime; // sortIndex: 排序索引, 全等于过期时间. 保证过期时间越小, 越紧急的任务排在最前面
+
       push(taskQueue, newTask);
-      // wait until the next time we yield.
 
 
       if (!isHostCallbackScheduled && !isPerformingWork) {
@@ -2977,16 +2959,19 @@
 
   var frameInterval = frameYieldMs;
   var startTime = -1;
+  /**
+   * 检查当前是否应该将控制权交还给主线程
+   * 目的是尽可能地避免阻塞主线程，提高程序的响应速度和用户体验
+   * @returns
+   */
 
   function shouldYieldToHost() {
-    var timeElapsed = getCurrentTime() - startTime;
+    // 已经使用的时间timeElapsed
+    var timeElapsed = getCurrentTime() - startTime; //已经使用的时间不足一帧的时间，不需要将控制权交还给主线程
 
     if (timeElapsed < frameInterval) {
-      // The main thread has only been blocked for a really short amount of time;
-      // smaller than a single frame. Don't yield yet.
       return false;
-    } // The main thread has been blocked for a non-negligible amount of time. We
-
+    }
 
     return true;
   }
@@ -3008,54 +2993,40 @@
       // reset the framerate
       frameInterval = frameYieldMs;
     }
-  }
+  } // 执行下一个需要执行的回调函数
+
 
   var performWorkUntilDeadline = function () {
     if (scheduledHostCallback !== null) {
-      var currentTime = getCurrentTime(); // Keep track of the start time so we can measure how long the main thread
-      // has been blocked.
+      var currentTime = getCurrentTime(); // 1. 获取当前时间
 
       startTime = currentTime;
-      var hasTimeRemaining = true; // If a scheduler task throws, exit the current browser task so the
-      // error can be observed.
-      //
-      // Intentionally not using a try-catch, since that makes some debugging
-      // techniques harder. Instead, if `scheduledHostCallback` errors, then
-      // `hasMoreWork` will remain true, and we'll continue the work loop.
+      var hasTimeRemaining = true; //表示还有时间片可以用来执行任务
 
       var hasMoreWork = true;
 
       try {
+        // 3. 执行回调, 返回是否有还有剩余任务
         hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
       } finally {
         if (hasMoreWork) {
-          // If there's more work, schedule the next message event at the end
-          // of the preceding one.
+          // 有剩余任务, 发起新的调度
           schedulePerformWorkUntilDeadline();
         } else {
+          // 没有剩余任务, 退出
           isMessageLoopRunning = false;
           scheduledHostCallback = null;
         }
       }
     } else {
-      isMessageLoopRunning = false;
-    } // Yielding to the browser will give it a chance to paint, so we can
-  };
+      isMessageLoopRunning = false; // 消息循环结束
+    }
+  }; // 选择合适的调度方式
+
 
   var schedulePerformWorkUntilDeadline;
 
   if (typeof localSetImmediate === 'function') {
-    // Node.js and old IE.
-    // There's a few reasons for why we prefer setImmediate.
-    //
-    // Unlike MessageChannel, it doesn't prevent a Node.js process from exiting.
-    // (Even though this is a DOM fork of the Scheduler, you could get here
-    // with a mix of Node.js 15+, which has a MessageChannel, and jsdom.)
-    // https://github.com/facebook/react/issues/20756
-    //
-    // But also, it runs earlier which is the semantic we want.
-    // If other browsers ever implement it, it's better to use it.
-    // Although both of these would be inferior to native scheduling.
     schedulePerformWorkUntilDeadline = function () {
       localSetImmediate(performWorkUntilDeadline);
     };
@@ -3070,17 +3041,24 @@
       port.postMessage(null);
     };
   } else {
-    // We should only fallback here in non-browser environments.
     schedulePerformWorkUntilDeadline = function () {
       localSetTimeout(performWorkUntilDeadline, 0);
     };
   }
+  /**
+   * 调度控制——请求回调
+   * 请求浏览器在空闲时间执行回调
+   * 用于React应用程序中安排任务，以便让浏览器在空闲时间执行这些任务
+   * @param {*} callback
+   */
+
 
   function requestHostCallback(callback) {
     scheduledHostCallback = callback;
 
     if (!isMessageLoopRunning) {
-      isMessageLoopRunning = true;
+      isMessageLoopRunning = true; // 启动一个新的消息循环
+
       schedulePerformWorkUntilDeadline();
     }
   }

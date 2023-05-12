@@ -5,6 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @flow
+ *
+ * 定义了针对浏览器DOM环境的具体操作接口
+ *
  */
 
 import type {DOMEventName} from '../events/DOMEventNames';
@@ -145,6 +148,11 @@ let selectionInformation: null | SelectionInformation = null;
 
 export * from 'react-reconciler/src/ReactFiberHostConfigWithNoPersistence';
 
+/**
+ * 
+ * @param {*} rootContainerInstance 
+ * @returns 
+ */
 export function getRootHostContext(
   rootContainerInstance: Container,
 ): HostContext {
@@ -170,28 +178,21 @@ export function getRootHostContext(
       break;
     }
   }
-  if (__DEV__) {
-    const validatedTag = type.toLowerCase();
-    const ancestorInfo = updatedAncestorInfo(null, validatedTag);
-    return {namespace, ancestorInfo};
-  }
   return namespace;
 }
 
+/**
+ * 获取子组件的上下文环境
+ * @param {*} parentHostContext 
+ * @param {*} type 
+ * @param {*} rootContainerInstance 
+ * @returns 
+ */
 export function getChildHostContext(
   parentHostContext: HostContext,
   type: string,
   rootContainerInstance: Container,
 ): HostContext {
-  if (__DEV__) {
-    const parentHostContextDev = ((parentHostContext: any): HostContextDev);
-    const namespace = getChildNamespace(parentHostContextDev.namespace, type);
-    const ancestorInfo = updatedAncestorInfo(
-      parentHostContextDev.ancestorInfo,
-      type,
-    );
-    return {namespace, ancestorInfo};
-  }
   const parentNamespace = ((parentHostContext: any): HostContextProd);
   return getChildNamespace(parentNamespace, type);
 }
@@ -338,6 +339,12 @@ export function prepareUpdate(
   );
 }
 
+/**
+ * 判断组件是否应该被渲染成文本内容
+ * @param {*} type 
+ * @param {*} props 
+ * @returns 
+ */
 export function shouldSetTextContent(type: string, props: Props): boolean {
   return (
     type === 'textarea' ||

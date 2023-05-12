@@ -124,7 +124,7 @@ export function getLabelForLane(lane: Lane): string | void {
   }
 }
 
-export const NoTimestamp = -1;
+export const NoTimestamp = -1; // 当前没有可用的事件时间
 
 let nextTransitionLane: Lane = TransitionLane1;
 let nextRetryLane: Lane = RetryLane1;
@@ -185,8 +185,16 @@ function getHighestPriorityLanes(lanes: Lanes | Lane): Lanes {
   }
 }
 
+/**
+ * 确定下一个需要执行的更新优先级
+ * 确定出当前最紧急的lanes
+ * 此时返回的lanes会作为全局渲染的优先级，用户Fiber树构造过程中，针对fiber对象和update对象，只要它们的优先级fiber.lanes和update.lanes比渲染优先级低，都将会被忽略
+ * @param {*} root Fiber树（FiberRoot）
+ * @param {*} wipLanes 
+ * @returns 
+ */
 export function getNextLanes(root: FiberRoot, wipLanes: Lanes): Lanes {
-  // Early bailout if there's no pending work left.
+  // 获取Fiber树中所有待执行的更新优先级
   const pendingLanes = root.pendingLanes;
   if (pendingLanes === NoLanes) {
     return NoLanes;
