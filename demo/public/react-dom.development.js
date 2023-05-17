@@ -69,7 +69,7 @@
   var ClassComponent = 1;
   var IndeterminateComponent = 2; // Before we know whether it is function or class
 
-  var HostRoot = 3; // Root of a host tree. Could be nested inside another node.
+  var HostRoot = 3; // 宿主树的根节点，createRoot(document.getElementById('container'))里的这个div节点，它的tag就是HostRoot，宿主树是React应用根节点，它是React渲染和更新的基础，所有组件都是在宿主树中进行渲染和更新
 
   var HostPortal = 4; // A subtree. Could be an entry point to a different renderer.
 
@@ -2526,11 +2526,15 @@
   /**
    * HTML nodeType values that represent the type of the node
    */
-  var ELEMENT_NODE = 1;
-  var TEXT_NODE = 3;
-  var COMMENT_NODE = 8;
-  var DOCUMENT_NODE = 9;
-  var DOCUMENT_FRAGMENT_NODE = 11;
+  var ELEMENT_NODE = 1; // 代表一个元素节点，例如 <div>、<span> 等。
+
+  var TEXT_NODE = 3; // 代表一个文本节点，例如元素内的文本内容。
+
+  var COMMENT_NODE = 8; // 代表一个注释节点，例如 <!-- ... -->
+
+  var DOCUMENT_NODE = 9; // 代表一个文档节点，即整个文档的根节点。
+
+  var DOCUMENT_FRAGMENT_NODE = 11; //代表一个文档片段节点，即文档的一个子集。
 
   /**
    * Set the textContent property of a node. For text updates, it's faster
@@ -5040,14 +5044,6 @@
       return map;
     }
   }
-
-  function markCommitStarted(lanes) {
-    {
-      if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markCommitStarted === 'function') {
-        injectedProfilingHooks.markCommitStarted(lanes);
-      }
-    }
-  }
   function markCommitStopped() {
     {
       if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markCommitStopped === 'function') {
@@ -5150,13 +5146,6 @@
     {
       if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markLayoutEffectsStopped === 'function') {
         injectedProfilingHooks.markLayoutEffectsStopped();
-      }
-    }
-  }
-  function markPassiveEffectsStarted(lanes) {
-    {
-      if (injectedProfilingHooks !== null && typeof injectedProfilingHooks.markPassiveEffectsStarted === 'function') {
-        injectedProfilingHooks.markPassiveEffectsStarted(lanes);
       }
     }
   }
@@ -5838,6 +5827,13 @@
 
     return laneMap;
   }
+  /**
+   * 标记Fiber树的根节点已经更新，已经更新的时间戳
+   * @param {*} root 
+   * @param {*} updateLane 
+   * @param {*} eventTime 
+   */
+
   function markRootUpdated(root, updateLane, eventTime) {
     root.pendingLanes |= updateLane; // If there are any suspended transitions, it's possible this new update
     // could unblock them. Clear the suspended lanes so that we can try rendering
@@ -6072,10 +6068,15 @@
     }
   }
 
-  var DiscreteEventPriority = SyncLane;
-  var ContinuousEventPriority = InputContinuousLane;
-  var DefaultEventPriority = DefaultLane;
-  var IdleEventPriority = IdleLane;
+  // 事件优先级
+  var DiscreteEventPriority = SyncLane; // 表示离散事件的优先级，例如用户的点击事件、按键事件等。它的 Lane 值为 SyncLane，表示该事件的优先级最高，需要立即响应
+
+  var ContinuousEventPriority = InputContinuousLane; // 表示连续事件的优先级，例如滚动事件、鼠标移动事件等。它的 Lane 值为 InputContinuousLane，表示该事件的优先级次于离散事件，但仍需要快速响应。
+
+  var DefaultEventPriority = DefaultLane; // 表示默认事件的优先级，例如常规的 DOM 事件、网络请求等。它的 Lane 值为 DefaultLane，表示该事件的优先级比离散事件和连续事件低，但仍需要在合理的时间内响应。
+
+  var IdleEventPriority = IdleLane; // 表示闲置事件的优先级，例如空闲时间执行的任务、后台数据更新等。它的 Lane 值为 IdleLane，表示该事件的优先级最低，只有在其他事件处理完毕后才会被执行。这种事件优先级通常用于性能优化，以避免在主线程繁忙时阻塞用户交互。
+
   var currentUpdatePriority = NoLane;
   function getCurrentUpdatePriority() {
     return currentUpdatePriority;
@@ -9853,6 +9854,15 @@
       }
     }
   }
+  /**
+   * 创建DOM节点
+   * @param {*} type 
+   * @param {*} props 
+   * @param {*} rootContainerElement 
+   * @param {*} parentNamespace 
+   * @returns 
+   */
+
 
   function createElement(type, props, rootContainerElement, parentNamespace) {
     var isCustomComponentTag; // We create tags in the namespace of their parent container, except HTML
@@ -10981,9 +10991,9 @@
   var eventsEnabled = null;
   var selectionInformation = null;
   /**
-   * 
-   * @param {*} rootContainerInstance 
-   * @returns 
+   *
+   * @param {*} rootContainerInstance
+   * @returns
    */
 
   function getRootHostContext(rootContainerInstance) {
@@ -11015,10 +11025,10 @@
   }
   /**
    * 获取子组件的上下文环境
-   * @param {*} parentHostContext 
-   * @param {*} type 
-   * @param {*} rootContainerInstance 
-   * @returns 
+   * @param {*} parentHostContext
+   * @param {*} type
+   * @param {*} rootContainerInstance
+   * @returns
    */
 
   function getChildHostContext(parentHostContext, type, rootContainerInstance) {
@@ -11042,25 +11052,24 @@
     eventsEnabled = null;
     selectionInformation = null;
   }
+  /**
+   * 创建DOM节点的函数，组件的渲染结果最终会转化为DOM树上的节点，并添加到页面上展示
+   * @param {*} type  组件类型
+   * @param {*} props  属性
+   * @param {*} rootContainerInstance   容器
+   * @param {*} hostContext  上下文
+   * @param {*} internalInstanceHandle 
+   * @returns 
+   */
+
   function createInstance(type, props, rootContainerInstance, hostContext, internalInstanceHandle) {
     var parentNamespace;
+    parentNamespace = hostContext; // 具体创建DOM节点
 
-    {
-      // TODO: take namespace into account when validating.
-      var hostContextDev = hostContext;
-      validateDOMNesting(type, null, hostContextDev.ancestorInfo);
+    var domElement = createElement(type, props, rootContainerInstance, parentNamespace); // 将Fiber节点与DOM节点进行关联，以便后续更新过程中能够快速访问和更新DOM节点
 
-      if (typeof props.children === 'string' || typeof props.children === 'number') {
-        var string = '' + props.children;
-        var ownAncestorInfo = updatedAncestorInfo(hostContextDev.ancestorInfo, type);
-        validateDOMNesting(null, string, ownAncestorInfo);
-      }
+    precacheFiberNode(internalInstanceHandle, domElement); // 将当前节点的属性更新到DOM节点上
 
-      parentNamespace = hostContextDev.namespace;
-    }
-
-    var domElement = createElement(type, props, rootContainerInstance, parentNamespace);
-    precacheFiberNode(internalInstanceHandle, domElement);
     updateFiberProps(domElement, props);
     return domElement;
   }
@@ -11099,9 +11108,9 @@
   }
   /**
    * 判断组件是否应该被渲染成文本内容
-   * @param {*} type 
-   * @param {*} props 
-   * @returns 
+   * @param {*} type
+   * @param {*} props
+   * @returns
    */
 
   function shouldSetTextContent(type, props) {
@@ -16508,10 +16517,6 @@
 
   var hookTypesDev = null;
   var hookTypesUpdateIndexDev = -1; // In DEV, this tracks whether currently rendering component needs to ignore
-  // the dependencies for Hooks that need them (e.g. useEffect or useMemo).
-  // When true, such Hooks will always be "remounted". Only used during hot reload.
-
-  var ignorePreviousDependencies = false;
 
   function mountHookTypesDev() {
     {
@@ -16585,12 +16590,6 @@
   }
 
   function areHookInputsEqual(nextDeps, prevDeps) {
-    {
-      if (ignorePreviousDependencies) {
-        // Only true when this component is being hot reloaded.
-        return false;
-      }
-    }
 
     if (prevDeps === null) {
       {
@@ -16620,44 +16619,18 @@
   }
 
   function renderWithHooks(current, workInProgress, Component, props, secondArg, nextRenderLanes) {
-    renderLanes = nextRenderLanes;
-    currentlyRenderingFiber$1 = workInProgress;
+    // --------------- 1. 设置全局变量 -------------------
+    renderLanes = nextRenderLanes; // 当前渲染优先级
 
-    {
-      hookTypesDev = current !== null ? current._debugHookTypes : null;
-      hookTypesUpdateIndexDev = -1; // Used for hot reloading:
-
-      ignorePreviousDependencies = current !== null && current.type !== workInProgress.type;
-    }
+    currentlyRenderingFiber$1 = workInProgress; // 当前fiber节点, 也就是function组件对应的fiber节点
+    // 清除当前fiber的遗留状态
 
     workInProgress.memoizedState = null;
     workInProgress.updateQueue = null;
-    workInProgress.lanes = NoLanes; // The following should have already been reset
-    // currentHook = null;
-    // workInProgressHook = null;
-    // didScheduleRenderPhaseUpdate = false;
-    // localIdCounter = 0;
-    // TODO Warn if no hooks are used at all during mount, then some are used during update.
-    // Currently we will identify the update render as a mount because memoizedState === null.
-    // This is tricky because it's valid for certain types of components (e.g. React.lazy)
-    // Using memoizedState to differentiate between mount/update only works if at least one stateful hook is used.
-    // Non-stateful hooks (e.g. context) don't get added to memoizedState,
-    // so memoizedState would be null during updates and mounts.
+    workInProgress.lanes = NoLanes; // --------------- 2. 调用function,生成子级ReactElement对象 -------------------
+    // 指定dispatcher, 区分mount和update
 
-    {
-      if (current !== null && current.memoizedState !== null) {
-        ReactCurrentDispatcher$1.current = HooksDispatcherOnUpdateInDEV;
-      } else if (hookTypesDev !== null) {
-        // This dispatcher handles an edge case where a component is updating,
-        // but no stateful hooks have been used.
-        // We want to match the production code behavior (which will use HooksDispatcherOnMount),
-        // but with the extra DEV validation to ensure hooks ordering hasn't changed.
-        // This dispatcher does that.
-        ReactCurrentDispatcher$1.current = HooksDispatcherOnMountWithHookTypesInDEV;
-      } else {
-        ReactCurrentDispatcher$1.current = HooksDispatcherOnMountInDEV;
-      }
-    }
+    ReactCurrentDispatcher$1.current = current === null || current.memoizedState === null ? HooksDispatcherOnMount : HooksDispatcherOnUpdate; // 执行function函数, 其中进行分析Hooks的使用
 
     var children = Component(props, secondArg); // Check if there was a render phase update
 
@@ -16674,24 +16647,11 @@
           throw new Error('Too many re-renders. React limits the number of renders to prevent ' + 'an infinite loop.');
         }
 
-        numberOfReRenders += 1;
-
-        {
-          // Even when hot reloading, allow dependencies to stabilize
-          // after first render to prevent infinite render phase updates.
-          ignorePreviousDependencies = false;
-        } // Start over from the beginning of the list
-
+        numberOfReRenders += 1; // Start over from the beginning of the list
 
         currentHook = null;
         workInProgressHook = null;
         workInProgress.updateQueue = null;
-
-        {
-          // Also validate hook order for cascading updates.
-          hookTypesUpdateIndexDev = -1;
-        }
-
         ReactCurrentDispatcher$1.current =  HooksDispatcherOnRerenderInDEV ;
         children = Component(props, secondArg);
       } while (didScheduleRenderPhaseUpdateDuringThisPass);
@@ -16699,38 +16659,16 @@
     // at the beginning of the render phase and there's no re-entrance.
 
 
-    ReactCurrentDispatcher$1.current = ContextOnlyDispatcher;
-
-    {
-      workInProgress._debugHookTypes = hookTypesDev;
-    } // This check uses currentHook so that it works the same in DEV and prod bundles.
+    ReactCurrentDispatcher$1.current = ContextOnlyDispatcher; // This check uses currentHook so that it works the same in DEV and prod bundles.
     // hookTypesDev could catch more cases (e.g. context) but only in DEV bundles.
 
+    var didRenderTooFewHooks = currentHook !== null && currentHook.next !== null; // --------------- 3. 重置全局变量,并返回 -------------------
+    // 执行function之后, 还原被修改的全局变量, 不影响下一次调用
 
-    var didRenderTooFewHooks = currentHook !== null && currentHook.next !== null;
     renderLanes = NoLanes;
     currentlyRenderingFiber$1 = null;
     currentHook = null;
     workInProgressHook = null;
-
-    {
-      currentHookNameInDev = null;
-      hookTypesDev = null;
-      hookTypesUpdateIndexDev = -1; // Confirm that a static flag was not added or removed since the last
-      // render. If this fires, it suggests that we incorrectly reset the static
-      // flags in some other part of the codebase. This has happened before, for
-      // example, in the SuspenseList implementation.
-
-      if (current !== null && (current.flags & StaticMask) !== (workInProgress.flags & StaticMask) && // Disable this warning in legacy mode, because legacy Suspense is weird
-      // and creates false positives. To make this work in legacy mode, we'd
-      // need to mark fibers that commit in an incomplete state, somehow. For
-      // now I'll disable the warning that most of the bugs that would trigger
-      // it are either exclusive to concurrent mode or exist in both.
-      (current.mode & ConcurrentMode) !== NoMode) {
-        error('Internal React error: Expected static flag was missing. Please ' + 'notify the React team.');
-      }
-    }
-
     didScheduleRenderPhaseUpdate = false; // This is reset by checkDidRenderIdHook
     // localIdCounter = 0;
 
@@ -18017,6 +17955,60 @@
     ContextOnlyDispatcher.getCacheSignal = getCacheSignal;
     ContextOnlyDispatcher.getCacheForType = getCacheForType;
     ContextOnlyDispatcher.useCacheRefresh = throwInvalidHookError;
+  }
+
+  var HooksDispatcherOnMount = {
+    readContext: readContext,
+    useCallback: mountCallback,
+    useContext: readContext,
+    useEffect: mountEffect,
+    useImperativeHandle: mountImperativeHandle,
+    useLayoutEffect: mountLayoutEffect,
+    useInsertionEffect: mountInsertionEffect,
+    useMemo: mountMemo,
+    useReducer: mountReducer,
+    useRef: mountRef,
+    useState: mountState,
+    useDebugValue: mountDebugValue,
+    useDeferredValue: mountDeferredValue,
+    useTransition: mountTransition,
+    useMutableSource: mountMutableSource,
+    useSyncExternalStore: mountSyncExternalStore,
+    useId: mountId,
+    unstable_isNewReconciler: enableNewReconciler
+  };
+
+  {
+    HooksDispatcherOnMount.getCacheSignal = getCacheSignal;
+    HooksDispatcherOnMount.getCacheForType = getCacheForType;
+    HooksDispatcherOnMount.useCacheRefresh = mountRefresh;
+  }
+
+  var HooksDispatcherOnUpdate = {
+    readContext: readContext,
+    useCallback: updateCallback,
+    useContext: readContext,
+    useEffect: updateEffect,
+    useImperativeHandle: updateImperativeHandle,
+    useInsertionEffect: updateInsertionEffect,
+    useLayoutEffect: updateLayoutEffect,
+    useMemo: updateMemo,
+    useReducer: updateReducer,
+    useRef: updateRef,
+    useState: updateState,
+    useDebugValue: updateDebugValue,
+    useDeferredValue: updateDeferredValue,
+    useTransition: updateTransition,
+    useMutableSource: updateMutableSource,
+    useSyncExternalStore: updateSyncExternalStore,
+    useId: updateId,
+    unstable_isNewReconciler: enableNewReconciler
+  };
+
+  {
+    HooksDispatcherOnUpdate.getCacheSignal = getCacheSignal;
+    HooksDispatcherOnUpdate.getCacheForType = getCacheForType;
+    HooksDispatcherOnUpdate.useCacheRefresh = updateRefresh;
   }
 
   var HooksDispatcherOnMountInDEV = null;
@@ -26573,113 +26565,6 @@
     }
   } // TODO: Reuse reappearLayoutEffects traversal here?
 
-
-  function invokeLayoutEffectMountInDEV(fiber) {
-    {
-      // We don't need to re-check StrictEffectsMode here.
-      // This function is only called if that check has already passed.
-      switch (fiber.tag) {
-        case FunctionComponent:
-        case ForwardRef:
-        case SimpleMemoComponent:
-          {
-            try {
-              commitHookEffectListMount(Layout | HasEffect, fiber);
-            } catch (error) {
-              captureCommitPhaseError(fiber, fiber.return, error);
-            }
-
-            break;
-          }
-
-        case ClassComponent:
-          {
-            var instance = fiber.stateNode;
-
-            try {
-              instance.componentDidMount();
-            } catch (error) {
-              captureCommitPhaseError(fiber, fiber.return, error);
-            }
-
-            break;
-          }
-      }
-    }
-  }
-
-  function invokePassiveEffectMountInDEV(fiber) {
-    {
-      // We don't need to re-check StrictEffectsMode here.
-      // This function is only called if that check has already passed.
-      switch (fiber.tag) {
-        case FunctionComponent:
-        case ForwardRef:
-        case SimpleMemoComponent:
-          {
-            try {
-              commitHookEffectListMount(Passive$1 | HasEffect, fiber);
-            } catch (error) {
-              captureCommitPhaseError(fiber, fiber.return, error);
-            }
-
-            break;
-          }
-      }
-    }
-  }
-
-  function invokeLayoutEffectUnmountInDEV(fiber) {
-    {
-      // We don't need to re-check StrictEffectsMode here.
-      // This function is only called if that check has already passed.
-      switch (fiber.tag) {
-        case FunctionComponent:
-        case ForwardRef:
-        case SimpleMemoComponent:
-          {
-            try {
-              commitHookEffectListUnmount(Layout | HasEffect, fiber, fiber.return);
-            } catch (error) {
-              captureCommitPhaseError(fiber, fiber.return, error);
-            }
-
-            break;
-          }
-
-        case ClassComponent:
-          {
-            var instance = fiber.stateNode;
-
-            if (typeof instance.componentWillUnmount === 'function') {
-              safelyCallComponentWillUnmount(fiber, fiber.return, instance);
-            }
-
-            break;
-          }
-      }
-    }
-  }
-
-  function invokePassiveEffectUnmountInDEV(fiber) {
-    {
-      // We don't need to re-check StrictEffectsMode here.
-      // This function is only called if that check has already passed.
-      switch (fiber.tag) {
-        case FunctionComponent:
-        case ForwardRef:
-        case SimpleMemoComponent:
-          {
-            try {
-              commitHookEffectListUnmount(Passive$1 | HasEffect, fiber, fiber.return);
-            } catch (error) {
-              captureCommitPhaseError(fiber, fiber.return, error);
-            }
-          }
-      }
-    }
-  }
-
   var COMPONENT_TYPE = 0;
   var HAS_PSEUDO_CLASS_TYPE = 1;
   var ROLE_TYPE = 2;
@@ -26693,14 +26578,6 @@
     ROLE_TYPE = symbolFor('selector.role');
     TEST_NAME_TYPE = symbolFor('selector.test_id');
     TEXT_TYPE = symbolFor('selector.text');
-  }
-  var commitHooks = [];
-  function onCommitRoot$1() {
-    {
-      commitHooks.forEach(function (commitHook) {
-        return commitHook();
-      });
-    }
   }
 
   var ReactCurrentActQueue = ReactSharedInternals.ReactCurrentActQueue;
@@ -26784,7 +26661,9 @@
   var hasUncaughtError = false;
   var firstUncaughtError = null;
   var legacyErrorBoundariesThatAlreadyFailed = null; // Only used when enableProfilerNestedUpdateScheduledHook is true;
-  var rootDoesHavePassiveEffects = false;
+  var rootDoesHavePassiveEffects = false; // 跟踪是否具有挂起被动效果的根节点，以便React在空闲时刷新这些被动效果
+  //
+
   var rootWithPendingPassiveEffects = null;
   var pendingPassiveEffectsLanes = NoLanes;
   var pendingPassiveProfilerEffects = [];
@@ -26794,10 +26673,8 @@
   var NESTED_UPDATE_LIMIT = 50;
   var nestedUpdateCount = 0;
   var rootWithNestedUpdates = null;
-  var didScheduleUpdateDuringPassiveEffects = false;
   var NESTED_PASSIVE_UPDATE_LIMIT = 50;
   var nestedPassiveUpdateCount = 0;
-  var rootWithPassiveNestedUpdates = null; // 发起更新的时间
 
   var currentEventTime = NoTimestamp;
   var currentEventTransitionLane = NoLanes;
@@ -27760,11 +27637,19 @@
     // so those are false.
     return workInProgressRootExitStatus === RootInProgress;
   }
+  /**
+   * 同步渲染Fiber树的根节点
+   * @param {*} root Fiber树的根节点对象  FiberRootNode
+   * @param {*} lanes 表示要更新的Lane集合，用于标记更新的优先级
+   * @returns
+   */
 
   function renderRootSync(root, lanes) {
-    var prevExecutionContext = executionContext;
+    // 先保存当前的执行上下文和调度程序
+    var prevExecutionContext = executionContext; // 设置执行上下文为RenderContext
+
     executionContext |= RenderContext;
-    var prevDispatcher = pushDispatcher();
+    var prevDispatcher = pushDispatcher(); // 如果当前正在渲染的 Fiber 树与传入的根节点或更新的 Lane 集合不同，则准备新的 Fiber 树。
 
     if (workInProgressRoot !== root || workInProgressRootRenderLanes !== lanes) {
       {
@@ -27782,14 +27667,20 @@
 
       workInProgressTransitions = getTransitionsForLanes();
       prepareFreshStack(root, lanes);
-    }
+    } // 如果启用了调度分析，则标记渲染开始
+
 
     {
       markRenderStarted(lanes);
-    }
+    } // 进入Fiber树构建的工作循环
+    // 这个 do-while 循环的作用是确保 workLoopSync 函数能够完整地执行整个渲染过程，即使出现了错误也能够及时处理。如果不使用 do-while 循环，可能会导致在出现错误时，程序无法正确处理错误并退出渲染过程，从而影响应用程序的正确性和稳定性。
+    //此外，do-while 循环还可以确保在渲染过程中，所有的 useEffect 和 useLayoutEffect 钩子函数都能够得到正确的执行顺序。如果不使用 do-while 循环，可能会导致这些钩子函数的执行顺序出现问题，从而影响应用程序的正确性。
+    //总结do while作用：确保整个渲染过程的正确性和稳定性，而不是为了让 workLoopSync 函数能够循环执行多次
+
 
     do {
       try {
+        // 同步渲染Fiber树
         workLoopSync();
         break;
       } catch (thrownValue) {
@@ -27890,7 +27781,7 @@
   /**
    * Fiber Reconciler
    *  遍历整个Fiber树
-   * 
+   *
    * beginWork+completeWork  完成一个fiber节点的创建
    * @param {*} unitOfWork   workInProgress：当前已创建的workInProgress fiber
    */
@@ -27913,18 +27804,22 @@
 
     ReactCurrentOwner$2.current = null;
   }
+  /**
+   *
+   * @param {*} unitOfWork 当前需要完成的工作单元
+   * @returns
+   */
+
 
   function completeUnitOfWork(unitOfWork) {
-    // Attempt to complete the current unit of work, then move to the next
-    // sibling. If there are no more siblings, return to the parent fiber.
     var completedWork = unitOfWork;
 
     do {
-      // The current, flushed, state of this fiber is the alternate. Ideally
-      // nothing should rely on this, but relying on it here means that we don't
-      // need an additional field on the work in progress.
-      var current = completedWork.alternate;
-      var returnFiber = completedWork.return; // Check if the work completed or if something threw.
+      // 获取当前节点的备用节点
+      var current = completedWork.alternate; // 获取当前节点的父节点
+
+      var returnFiber = completedWork.return; // 如果当前节点的工作单元已经完成，说明当前节点可以提交到DOM中
+      // 调用：completeWork完成当前节点工作
 
       if ((completedWork.flags & Incomplete) === NoFlags) {
         setCurrentFiber(completedWork);
@@ -27947,9 +27842,8 @@
           return;
         }
       } else {
-        // This fiber did not complete because something threw. Pop values off
-        // the stack without entering the complete phase. If this is a boundary,
-        // capture values if possible.
+        // 如果当前节点的工作单元没有完成，说明当前节点存在异常
+        // 调用：unwindWork处理异常
         var _next = unwindWork(current, completedWork); // Because this fiber did not complete, don't reset its lanes.
 
 
@@ -27984,18 +27878,20 @@
           returnFiber.subtreeFlags = NoFlags;
           returnFiber.deletions = null;
         } else {
-          // We've unwound all the way to the root.
+          // 如果当前节点没有父节点，则表示已经遍历完成整个Fiber树，可以退出循环
           workInProgressRootExitStatus = RootDidNotComplete;
           workInProgress = null;
           return;
         }
-      }
+      } // 兄弟节点处理
+
 
       var siblingFiber = completedWork.sibling;
 
       if (siblingFiber !== null) {
-        // If there is more work to do in this returnFiber, do that next.
-        workInProgress = siblingFiber;
+        // 如果当前节点有兄弟节点，则将兄弟节点设置为workInProgress，继续遍历
+        workInProgress = siblingFiber; // 退出循环体所在函数
+
         return;
       } // Otherwise, return to the parent
 
@@ -28039,13 +27935,12 @@
 
 
   function commitRootImpl(root, recoverableErrors, transitions, renderPriorityLevel) {
+    // ============ 渲染前: 准备 ============
     // before mutation  主要做一些变量赋值，状态重置的工作
     do {
       // 触发useEffect回调与其他同步任务。由于这些任务可能触发新的渲染，所以这里要一直遍历执行直到没有任务
       flushPassiveEffects();
     } while (rootWithPendingPassiveEffects !== null);
-
-    flushRenderPhaseStrictModeWarningsInDEV();
 
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
       throw new Error('Should not already be working.');
@@ -28056,10 +27951,6 @@
 
     var lanes = root.finishedLanes;
 
-    {
-      markCommitStarted(lanes);
-    }
-
     if (finishedWork === null) {
       return null;
     }
@@ -28069,17 +27960,12 @@
 
     if (finishedWork === root.current) {
       throw new Error('Cannot commit the same tree as before. This error is likely caused by ' + 'a bug in React. Please file an issue.');
-    } // commitRoot never returns a continuation; it always finishes synchronously.
-    // So we can clear these now to allow a new callback to be scheduled.
-
+    }
 
     root.callbackNode = null;
-    root.callbackPriority = NoLane; // Check which lanes no longer have any work scheduled on them, and mark
-    // those as finished.
+    root.callbackPriority = NoLane; // remainingLanes:得到当前应用程序中未完成更新队列
 
-    var remainingLanes = mergeLanes(finishedWork.lanes, finishedWork.childLanes); // Make sure to account for lanes that were updated by a concurrent event
-    // during the render phase; don't mark them as finished.
-
+    var remainingLanes = mergeLanes(finishedWork.lanes, finishedWork.childLanes);
     var concurrentlyUpdatedLanes = getConcurrentlyUpdatedLanes();
     remainingLanes = mergeLanes(remainingLanes, concurrentlyUpdatedLanes);
     markRootFinished(root, remainingLanes);
@@ -28089,38 +27975,19 @@
       workInProgressRoot = null;
       workInProgress = null;
       workInProgressRootRenderLanes = NoLanes;
-    } // If there are pending passive effects, schedule a callback to process them.
-    // Do this as early as possible, so it is queued before anything else that
-    // might get scheduled in the commit phase. (See #16714.)
-    // TODO: Delete all other places that schedule the passive effect callback
-    // They're redundant.
-
+    }
 
     if ((finishedWork.subtreeFlags & PassiveMask) !== NoFlags || (finishedWork.flags & PassiveMask) !== NoFlags) {
       if (!rootDoesHavePassiveEffects) {
         rootDoesHavePassiveEffects = true;
-        pendingPassiveEffectsRemainingLanes = remainingLanes; // workInProgressTransitions might be overwritten, so we want
-        // to store it in pendingPassiveTransitions until they get processed
-        // We need to pass this through as an argument to commitRoot
-        // because workInProgressTransitions might have changed between
-        // the previous render and commit if we throttle the commit
-        // with setTimeout
-
+        pendingPassiveEffectsRemainingLanes = remainingLanes;
         pendingPassiveTransitions = transitions;
         scheduleCallback$2(NormalPriority, function () {
-          flushPassiveEffects(); // This render triggered passive effects: release the root cache pool
-          // *after* passive effects fire to avoid freeing a cache pool that may
-          // be referenced by a node in the tree (HostRoot, Cache boundary etc)
-
+          flushPassiveEffects();
           return null;
         });
       }
-    } // Check if there are any effects in the whole tree.
-    // TODO: This is left over from the effect list implementation, where we had
-    // to check for the existence of `firstEffect` to satisfy Flow. I think the
-    // only other reason this optimization exists is because it affects profiling.
-    // Reconsider whether this is necessary.
-
+    }
 
     var subtreeHasEffects = (finishedWork.subtreeFlags & (BeforeMutationMask | MutationMask | LayoutMask | PassiveMask)) !== NoFlags;
     var rootHasEffect = (finishedWork.flags & (BeforeMutationMask | MutationMask | LayoutMask | PassiveMask)) !== NoFlags;
@@ -28133,7 +28000,8 @@
       var prevExecutionContext = executionContext;
       executionContext |= CommitContext; // Reset this to null before calling lifecycles
 
-      ReactCurrentOwner$2.current = null; // dom 变更之前, 主要处理副作用队列中带有Snapshot,Passive标记的fiber节点.
+      ReactCurrentOwner$2.current = null; // ============ 渲染 ============
+      // 阶段1: dom突变之前
 
       var shouldFireAfterActiveInstanceBlur = commitBeforeMutationEffects(root, finishedWork);
 
@@ -28141,21 +28009,17 @@
         // Mark the current commit time to be shared by all Profilers in this
         // batch. This enables them to be grouped later.
         recordCommitTime();
-      }
+      } // 阶段2: dom突变, 界面发生改变
 
 
       commitMutationEffects(root, finishedWork, lanes);
 
-      resetAfterCommit(root.containerInfo); // The work-in-progress tree is now the current tree. This must come after
-      // the mutation phase, so that the previous tree is still current during
-      // componentWillUnmount, but before the layout phase, so that the finished
-      // work is current during componentDidMount/Update.
-
+      resetAfterCommit(root.containerInfo);
       root.current = finishedWork;
 
       {
         markLayoutEffectsStarted(lanes);
-      } // dom 变更后, 主要处理副作用队列中带有Update | Callback标记的fiber节点.
+      } // 阶段3: layout阶段, 调用生命周期componentDidUpdate和回调函数等
 
 
       commitLayoutEffects(finishedWork, root, lanes);
@@ -28173,20 +28037,15 @@
       ReactCurrentBatchConfig$3.transition = prevTransition;
     } else {
       // No effects.
-      root.current = finishedWork; // Measure these anyway so the flamegraph explicitly shows that there were
-      // no effects.
-      // TODO: Maybe there's a better way to report this.
+      root.current = finishedWork;
 
       {
         recordCommitTime();
       }
-    }
+    } // ============ 渲染后: 重置与清理 ============
 
-    var rootDidHavePassiveEffects = rootDoesHavePassiveEffects;
 
     if (rootDoesHavePassiveEffects) {
-      // This commit has passive effects. Stash a reference to them. But don't
-      // schedule a callback until after flushing layout work.
       rootDoesHavePassiveEffects = false;
       rootWithPendingPassiveEffects = root;
       pendingPassiveEffectsLanes = lanes;
@@ -28194,35 +28053,15 @@
       // There were no passive effects, so we can immediately release the cache
       // pool for this render.
       releaseRootPooledCache(root, remainingLanes);
-
-      {
-        nestedPassiveUpdateCount = 0;
-        rootWithPassiveNestedUpdates = null;
-      }
     } // Read this again, since an effect might have updated it
 
 
-    remainingLanes = root.pendingLanes; // Check if there's remaining work on this root
-    // TODO: This is part of the `componentDidCatch` implementation. Its purpose
-    // is to detect whether something might have called setState inside
-    // `componentDidCatch`. The mechanism is known to be flawed because `setState`
-    // inside `componentDidCatch` is itself flawed — that's why we recommend
-    // `getDerivedStateFromError` instead. However, it could be improved by
-    // checking if remainingLanes includes Sync work, instead of whether there's
-    // any work remaining at all (which would also include stuff like Suspense
-    // retries or transitions). It's been like this for a while, though, so fixing
-    // it probably isn't that urgent.
+    remainingLanes = root.pendingLanes;
 
     if (remainingLanes === NoLanes) {
       // If there's no remaining work, we can clear the set of already failed
       // error boundaries.
       legacyErrorBoundariesThatAlreadyFailed = null;
-    }
-
-    {
-      if (!rootDidHavePassiveEffects) {
-        commitDoubleInvokeEffectsInDEV(root.current, false);
-      }
     }
 
     onCommitRoot(finishedWork.stateNode, renderPriorityLevel);
@@ -28231,19 +28070,12 @@
       if (isDevToolsPresent) {
         root.memoizedUpdaters.clear();
       }
-    }
-
-    {
-      onCommitRoot$1();
-    } // Always call this before exiting `commitRoot`, to ensure that any
-    // additional work on this root is scheduled.
+    } // 1. 检测常规(异步)任务, 如果有则会发起异步调度(调度中心`scheduler`只能异步调用)
 
 
     ensureRootIsScheduled(root, now());
 
     if (recoverableErrors !== null) {
-      // There were errors during this render, but recovered from them without
-      // needing to surface it to the UI. We log them here.
       var onRecoverableError = root.onRecoverableError;
 
       for (var i = 0; i < recoverableErrors.length; i++) {
@@ -28262,15 +28094,7 @@
       var error = firstUncaughtError;
       firstUncaughtError = null;
       throw error;
-    } // If the passive effects are the result of a discrete render, flush them
-    // synchronously at the end of the current task so that the result is
-    // immediately observable. Otherwise, we assume that they are not
-    // order-dependent and do not need to be observed by external systems, so we
-    // can wait until after paint.
-    // TODO: We can optimize this by not scheduling the callback earlier. Since we
-    // currently schedule the callback in multiple places, will wait until those
-    // are consolidated.
-
+    }
 
     if (includesSomeLane(pendingPassiveEffectsLanes, SyncLane) && root.tag !== LegacyRoot) {
       flushPassiveEffects();
@@ -28282,9 +28106,7 @@
     if (includesSomeLane(remainingLanes, SyncLane)) {
       {
         markNestedUpdateScheduled();
-      } // Count the number of times the root synchronously re-renders without
-      // finishing. If there are too many, it indicates an infinite update loop.
-
+      }
 
       if (root === rootWithNestedUpdates) {
         nestedUpdateCount++;
@@ -28294,7 +28116,7 @@
       }
     } else {
       nestedUpdateCount = 0;
-    } // If layout work was scheduled, flush it now.
+    } // 2. 检测同步任务, 如果有则主动调用flushSyncCallbackQueue(无需再次等待scheduler调度), 再次进入fiber树构造循环
 
 
     flushSyncCallbacks();
@@ -28322,14 +28144,14 @@
       }
     }
   }
+  /**
+   * 刷新任何挂起的被动效果
+   * 被动效果：对于UI首次渲染不是至关重要的效果，例如懒加载，预加载，或者在后台更新的效果
+   * @returns
+   */
+
 
   function flushPassiveEffects() {
-    // Returns whether passive effects were flushed.
-    // TODO: Combine this check with the one in flushPassiveEFfectsImpl. We should
-    // probably just combine the two functions. I believe they were only separate
-    // in the first place because we used to wrap it with
-    // `Scheduler.runWithPriority`, which accepts a function. But now we track the
-    // priority within React itself, so we can mutate the variable directly.
     if (rootWithPendingPassiveEffects !== null) {
       // Cache the root since rootWithPendingPassiveEffects is cleared in
       // flushPassiveEffectsImpl
@@ -28373,8 +28195,14 @@
       }
     }
   }
+  /**
+   * 刷新被动更新
+   * 浏览器空闲时执行
+   * @returns
+   */
 
   function flushPassiveEffectsImpl() {
+    // 如果没有任何具有挂起被动效果的根节点，直接返回
     if (rootWithPendingPassiveEffects === null) {
       return false;
     } // Cache and clear the transitions flag
@@ -28392,14 +28220,6 @@
 
     if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
       throw new Error('Cannot flush passive effects while already rendering.');
-    }
-
-    {
-      didScheduleUpdateDuringPassiveEffects = false;
-    }
-
-    {
-      markPassiveEffectsStarted(lanes);
     }
 
     var prevExecutionContext = executionContext;
@@ -28421,28 +28241,8 @@
       markPassiveEffectsStopped();
     }
 
-    {
-      commitDoubleInvokeEffectsInDEV(root.current, true);
-    }
-
     executionContext = prevExecutionContext;
     flushSyncCallbacks();
-
-    {
-      // If additional passive effects were scheduled, increment a counter. If this
-      // exceeds the limit, we'll fire a warning.
-      if (didScheduleUpdateDuringPassiveEffects) {
-        if (root === rootWithPassiveNestedUpdates) {
-          nestedPassiveUpdateCount++;
-        } else {
-          nestedPassiveUpdateCount = 0;
-          rootWithPassiveNestedUpdates = root;
-        }
-      } else {
-        nestedPassiveUpdateCount = 0;
-      }
-      didScheduleUpdateDuringPassiveEffects = false;
-    } // TODO: Move to commitPassiveMountEffects
 
 
     onPostCommitRoot(root);
@@ -28663,75 +28463,14 @@
       nestedUpdateCount = 0;
       nestedPassiveUpdateCount = 0;
       rootWithNestedUpdates = null;
-      rootWithPassiveNestedUpdates = null;
       throw new Error('Maximum update depth exceeded. This can happen when a component ' + 'repeatedly calls setState inside componentWillUpdate or ' + 'componentDidUpdate. React limits the number of nested updates to ' + 'prevent infinite loops.');
     }
 
     {
       if (nestedPassiveUpdateCount > NESTED_PASSIVE_UPDATE_LIMIT) {
         nestedPassiveUpdateCount = 0;
-        rootWithPassiveNestedUpdates = null;
 
         error('Maximum update depth exceeded. This can happen when a component ' + "calls setState inside useEffect, but useEffect either doesn't " + 'have a dependency array, or one of the dependencies changes on ' + 'every render.');
-      }
-    }
-  }
-
-  function flushRenderPhaseStrictModeWarningsInDEV() {
-    {
-      ReactStrictModeWarnings.flushLegacyContextWarning();
-
-      {
-        ReactStrictModeWarnings.flushPendingUnsafeLifecycleWarnings();
-      }
-    }
-  }
-
-  function commitDoubleInvokeEffectsInDEV(fiber, hasPassiveEffects) {
-    {
-      // TODO (StrictEffects) Should we set a marker on the root if it contains strict effects
-      // so we don't traverse unnecessarily? similar to subtreeFlags but just at the root level.
-      // Maybe not a big deal since this is DEV only behavior.
-      setCurrentFiber(fiber);
-      invokeEffectsInDev(fiber, MountLayoutDev, invokeLayoutEffectUnmountInDEV);
-
-      if (hasPassiveEffects) {
-        invokeEffectsInDev(fiber, MountPassiveDev, invokePassiveEffectUnmountInDEV);
-      }
-
-      invokeEffectsInDev(fiber, MountLayoutDev, invokeLayoutEffectMountInDEV);
-
-      if (hasPassiveEffects) {
-        invokeEffectsInDev(fiber, MountPassiveDev, invokePassiveEffectMountInDEV);
-      }
-
-      resetCurrentFiber();
-    }
-  }
-
-  function invokeEffectsInDev(firstChild, fiberFlags, invokeEffectFn) {
-    {
-      // We don't need to re-check StrictEffectsMode here.
-      // This function is only called if that check has already passed.
-      var current = firstChild;
-      var subtreeRoot = null;
-
-      while (current !== null) {
-        var primarySubtreeFlag = current.subtreeFlags & fiberFlags;
-
-        if (current !== subtreeRoot && current.child !== null && primarySubtreeFlag !== NoFlags) {
-          current = current.child;
-        } else {
-          if ((current.flags & fiberFlags) !== NoFlags) {
-            invokeEffectFn(current);
-          }
-
-          if (current.sibling !== null) {
-            current = current.sibling;
-          } else {
-            current = subtreeRoot = current.return;
-          }
-        }
       }
     }
   }
@@ -29472,6 +29211,14 @@
 
     return workInProgress;
   }
+  /**
+   *  HostRootFiber:应用程序根节点
+   * @param {*} tag 
+   * @param {*} isStrictMode 
+   * @param {*} concurrentUpdatesByDefaultOverride 
+   * @returns 
+   */
+
   function createHostRootFiber(tag, isStrictMode, concurrentUpdatesByDefaultOverride) {
     var mode;
 
@@ -29800,14 +29547,30 @@
       }
     }
   }
+  /**
+   * 创建FiberRoot对象
+   * @param {*} containerInfo 宿主元素根节点
+   * @param {*} tag
+   * @param {*} hydrate
+   * @param {*} initialChildren
+   * @param {*} hydrationCallbacks
+   * @param {*} isStrictMode
+   * @param {*} concurrentUpdatesByDefaultOverride
+   * @param {*} identifierPrefix
+   * @param {*} onRecoverableError
+   * @param {*} transitionCallbacks
+   * @returns
+   */
+
 
   function createFiberRoot(containerInfo, tag, hydrate, initialChildren, hydrationCallbacks, isStrictMode, concurrentUpdatesByDefaultOverride, // TODO: We have several of these arguments that are conceptually part of the
   // host config, but because they are passed in at runtime, we have to thread
   // them through the root constructor. Perhaps we should put them all into a
   // single type, like a DynamicHostConfig that is defined by the renderer.
   identifierPrefix, onRecoverableError, transitionCallbacks) {
+    // 创建一个FiberRoot对象，并赋值给root变量
     var root = new FiberRootNode(containerInfo, tag, hydrate, identifierPrefix, onRecoverableError);
-    // stateNode is any.
+    //未初始化的Fiber对象是一个空对象，用于存储FiberRoot的状态和更新
 
 
     var uninitializedFiber = createHostRootFiber(tag, isStrictMode);
@@ -29825,7 +29588,8 @@
         cache: initialCache
       };
       uninitializedFiber.memoizedState = initialState;
-    }
+    } // 初始化更新队列
+
 
     initializeUpdateQueue(uninitializedFiber);
     return root;
@@ -29933,6 +29697,19 @@
       return hostFiber.stateNode;
     }
   }
+  /**
+   * 创建一个FiberRoot对象，并将其关联到容器节点上
+   * @param {*} containerInfo 
+   * @param {*} tag 
+   * @param {*} hydrationCallbacks 
+   * @param {*} isStrictMode 
+   * @param {*} concurrentUpdatesByDefaultOverride 
+   * @param {*} identifierPrefix 
+   * @param {*} onRecoverableError 
+   * @param {*} transitionCallbacks 
+   * @returns 
+   */
+
 
   function createContainer(containerInfo, tag, hydrationCallbacks, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError, transitionCallbacks) {
     var hydrate = false;
@@ -30471,8 +30248,16 @@
       unmarkContainerAsRoot(container);
     }
   };
+  /**
+   * 创建宿主树的根节点
+   * @param {*} container   宿主树根节点容器，必须是一个合法的DOM元素
+   * @param {*} options 可选的配置项，可以设置一些React根节点的选项，例如是否启用严格模式、是否启用并发模式等
+   * @returns
+   */
+
 
   function createRoot(container, options) {
+    // 检查是否上一个有效的DOM元素
     if (!isValidContainer(container)) {
       throw new Error('createRoot(...): Target container is not a DOM element.');
     }
@@ -30482,7 +30267,7 @@
     var concurrentUpdatesByDefaultOverride = false;
     var identifierPrefix = '';
     var onRecoverableError = defaultOnRecoverableError;
-    var transitionCallbacks = null;
+    var transitionCallbacks = null; // 解析 options 参数，设置一些 React 根节点的选项
 
     if (options !== null && options !== undefined) {
       if (options.unstable_strictMode === true) {
@@ -30506,7 +30291,8 @@
     var root = createContainer(container, ConcurrentRoot, null, isStrictMode, concurrentUpdatesByDefaultOverride, identifierPrefix, onRecoverableError); // 2. 标记dom对象, 把dom和fiber对象关联起来
 
     markContainerAsRoot(root.current, container);
-    var rootContainerElement = container.nodeType === COMMENT_NODE ? container.parentNode : container;
+    var rootContainerElement = container.nodeType === COMMENT_NODE ? container.parentNode : container; //为根节点容器节点添加事件监听器
+
     listenToAllSupportedEvents(rootContainerElement);
     return new ReactDOMRoot(root);
   }
@@ -30578,6 +30364,12 @@
 
     return new ReactDOMHydrationRoot(root);
   }
+  /**
+   * 检查一个DOM节点是否可以作为React渲染的容器
+   * @param {*} node
+   * @returns
+   */
+
   function isValidContainer(node) {
     return !!(node && (node.nodeType === ELEMENT_NODE || node.nodeType === DOCUMENT_NODE || node.nodeType === DOCUMENT_FRAGMENT_NODE || !disableCommentsAsDOMContainers  ));
   } // TODO: Remove this function which also includes comment nodes.
