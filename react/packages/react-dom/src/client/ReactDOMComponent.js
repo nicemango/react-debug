@@ -367,6 +367,14 @@ function updateDOMProperties(
   }
 }
 
+/**
+ * 创建DOM节点
+ * @param {*} type 
+ * @param {*} props 
+ * @param {*} rootContainerElement 
+ * @param {*} parentNamespace 
+ * @returns 
+ */
 export function createElement(
   type: string,
   props: Object,

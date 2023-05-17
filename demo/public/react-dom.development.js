@@ -10981,7 +10981,7 @@
   var eventsEnabled = null;
   var selectionInformation = null;
   /**
-   * 用于获取根节点的上下文环境
+   * 
    * @param {*} rootContainerInstance 
    * @returns 
    */
@@ -11097,6 +11097,13 @@
 
     return diffProperties(domElement, type, oldProps, newProps);
   }
+  /**
+   * 判断组件是否应该被渲染成文本内容
+   * @param {*} type 
+   * @param {*} props 
+   * @returns 
+   */
+
   function shouldSetTextContent(type, props) {
     return type === 'textarea' || type === 'noscript' || typeof props.children === 'string' || typeof props.children === 'number' || typeof props.dangerouslySetInnerHTML === 'object' && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
   }
@@ -19738,6 +19745,7 @@
     };
   }
 
+  var TAG = 'ReactFiberBeginWork 🚀🚀🚀:';
   var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
   var didReceiveUpdate = false;
   var didWarnAboutBadClass;
@@ -19759,20 +19767,19 @@
     didWarnAboutRevealOrder = {};
     didWarnAboutTailOptions = {};
   }
+  /**
+   * 调和组件的子节点
+   * @param {*} current
+   * @param {*} workInProgress
+   * @param {*} nextChildren
+   * @param {*} renderLanes
+   */
+
 
   function reconcileChildren(current, workInProgress, nextChildren, renderLanes) {
     if (current === null) {
-      // If this is a fresh new component that hasn't been rendered yet, we
-      // won't update its child set by applying minimal side-effects. Instead,
-      // we will add them all to the child before it gets rendered. That means
-      // we can optimize this reconciliation pass by not tracking side-effects.
       workInProgress.child = mountChildFibers(workInProgress, null, nextChildren, renderLanes);
     } else {
-      // If the current child is the same as the work in progress, it means that
-      // we haven't yet started any work on these children. Therefore, we use
-      // the clone algorithm to create a copy of all the current children.
-      // If we had any progressed work already, that is invalid at this point so
-      // let's throw it out.
       workInProgress.child = reconcileChildFibers(workInProgress, current.child, nextChildren, renderLanes);
     }
   }
@@ -20277,6 +20284,13 @@
     reconcileChildren(current, workInProgress, nextChildren, renderLanes);
     return workInProgress.child;
   }
+  /**
+   * 标记组件是否有ref属性
+   * 它会检查当前组件和正在工作的组件是否具有不同的ref属性，如果是，则设置相应的标志位，以便在后续的渲染和更新中处理ref属性
+   * @param {*} current
+   * @param {*} workInProgress
+   */
+
 
   function markRef(current, workInProgress) {
     var ref = workInProgress.ref;
@@ -20639,32 +20653,34 @@
 
 
   function updateHostComponent(current, workInProgress, renderLanes) {
-    pushHostContext(workInProgress);
+    // 将宿主组件的上下文环境推入上下文环境栈中
+    pushHostContext(workInProgress); //如果当前Fiber节点为null，调用tryToClaimNextHydratableInstance函数，尝试获取下一个可水化的实例。
 
     if (current === null) {
       tryToClaimNextHydratableInstance(workInProgress);
-    }
+    } // 获取宿主组件的类型和属性
+
 
     var type = workInProgress.type;
     var nextProps = workInProgress.pendingProps;
-    var prevProps = current !== null ? current.memoizedProps : null;
+    var prevProps = current !== null ? current.memoizedProps : null; // 文本内容处理是一个优化：文本内容无需复杂计算和布局，直接渲染到DOM中，避免创建不必要的Fiber节点
+    // 如果宿主组件的子节点是文本内容，将子节点设置为null。
+
     var nextChildren = nextProps.children;
     var isDirectTextChild = shouldSetTextContent(type, nextProps);
 
     if (isDirectTextChild) {
-      // We special case a direct text child of a host node. This is a common
-      // case. We won't handle it as a reified child. We will instead handle
-      // this in the host environment that also has access to this prop. That
-      // avoids allocating another HostText fiber and traversing it.
       nextChildren = null;
     } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
-      // If we're switching from a direct text child to a normal child, or to
-      // empty, we need to schedule the text content to be reset.
+      // 如果宿主组件的子节点从文本内容切换到其他的Fiber节点，或者从其他的Fiber节点切换到文本内容或空节点，设置ContentReset标志位，以便在后续的更新中重置文本内容。
       workInProgress.flags |= ContentReset;
-    }
+    } // 宿主组件的ref属性
 
-    markRef(current, workInProgress);
-    reconcileChildren(current, workInProgress, nextChildren, renderLanes);
+
+    markRef(current, workInProgress); // 更新宿主组件的子节点
+
+    reconcileChildren(current, workInProgress, nextChildren, renderLanes); // 返回宿主组件的第一个子节点
+
     return workInProgress.child;
   }
 
@@ -22361,7 +22377,7 @@
         return updateHostRoot(current, workInProgress, renderLanes);
 
       case HostComponent:
-        console.log('✈️✈️✈️更新宿主组件', current, workInProgress, renderLanes);
+        console.log(TAG, current, workInProgress, renderLanes);
         return updateHostComponent(current, workInProgress, renderLanes);
 
       case HostText:

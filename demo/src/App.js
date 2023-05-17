@@ -1,5 +1,6 @@
 import logo from "./logo.svg";
 import "./App.css";
+import { useState } from "react";
 
 const downloadFile = async (url, fileName) => {
   try {
@@ -41,9 +42,15 @@ const Content = () => {
   );
 };
 function App() {
+  const [zstate, setZState] = useState(0);
   return (
-    <div className="app">
-      <header>header</header>
+    <div
+      className="app"
+      onClick={() => {
+        setZState(Math.random(10));
+      }}
+    >
+      <header zname={zstate}>header</header>
       <Content />
     </div>
   );

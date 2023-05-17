@@ -580,6 +580,12 @@ export function createLaneMap<T>(initial: T): LaneMap<T> {
   return laneMap;
 }
 
+/**
+ * 标记Fiber树的根节点已经更新，已经更新的时间戳
+ * @param {*} root 
+ * @param {*} updateLane 
+ * @param {*} eventTime 
+ */
 export function markRootUpdated(
   root: FiberRoot,
   updateLane: Lane,

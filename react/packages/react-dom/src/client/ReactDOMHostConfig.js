@@ -149,9 +149,9 @@ let selectionInformation: null | SelectionInformation = null;
 export * from 'react-reconciler/src/ReactFiberHostConfigWithNoPersistence';
 
 /**
- * 
- * @param {*} rootContainerInstance 
- * @returns 
+ *
+ * @param {*} rootContainerInstance
+ * @returns
  */
 export function getRootHostContext(
   rootContainerInstance: Container,
@@ -183,10 +183,10 @@ export function getRootHostContext(
 
 /**
  * 获取子组件的上下文环境
- * @param {*} parentHostContext 
- * @param {*} type 
- * @param {*} rootContainerInstance 
- * @returns 
+ * @param {*} parentHostContext
+ * @param {*} type
+ * @param {*} rootContainerInstance
+ * @returns
  */
 export function getChildHostContext(
   parentHostContext: HostContext,
@@ -241,6 +241,15 @@ export function resetAfterCommit(containerInfo: Container): void {
   selectionInformation = null;
 }
 
+/**
+ * 创建DOM节点的函数，组件的渲染结果最终会转化为DOM树上的节点，并添加到页面上展示
+ * @param {*} type  组件类型
+ * @param {*} props  属性
+ * @param {*} rootContainerInstance   容器
+ * @param {*} hostContext  上下文
+ * @param {*} internalInstanceHandle 
+ * @returns 
+ */
 export function createInstance(
   type: string,
   props: Props,
@@ -249,32 +258,17 @@ export function createInstance(
   internalInstanceHandle: Object,
 ): Instance {
   let parentNamespace: string;
-  if (__DEV__) {
-    // TODO: take namespace into account when validating.
-    const hostContextDev = ((hostContext: any): HostContextDev);
-    validateDOMNesting(type, null, hostContextDev.ancestorInfo);
-    if (
-      typeof props.children === 'string' ||
-      typeof props.children === 'number'
-    ) {
-      const string = '' + props.children;
-      const ownAncestorInfo = updatedAncestorInfo(
-        hostContextDev.ancestorInfo,
-        type,
-      );
-      validateDOMNesting(null, string, ownAncestorInfo);
-    }
-    parentNamespace = hostContextDev.namespace;
-  } else {
-    parentNamespace = ((hostContext: any): HostContextProd);
-  }
+  parentNamespace = ((hostContext: any): HostContextProd);
+  // 具体创建DOM节点
   const domElement: Instance = createElement(
     type,
     props,
     rootContainerInstance,
     parentNamespace,
   );
+  // 将Fiber节点与DOM节点进行关联，以便后续更新过程中能够快速访问和更新DOM节点
   precacheFiberNode(internalInstanceHandle, domElement);
+  // 将当前节点的属性更新到DOM节点上
   updateFiberProps(domElement, props);
   return domElement;
 }
@@ -341,9 +335,9 @@ export function prepareUpdate(
 
 /**
  * 判断组件是否应该被渲染成文本内容
- * @param {*} type 
- * @param {*} props 
- * @returns 
+ * @param {*} type
+ * @param {*} props
+ * @returns
  */
 export function shouldSetTextContent(type: string, props: Props): boolean {
   return (
