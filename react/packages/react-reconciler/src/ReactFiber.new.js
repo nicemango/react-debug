@@ -389,6 +389,13 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
   return workInProgress;
 }
 
+/**
+ *  HostRootFiber:应用程序根节点
+ * @param {*} tag 
+ * @param {*} isStrictMode 
+ * @param {*} concurrentUpdatesByDefaultOverride 
+ * @returns 
+ */
 export function createHostRootFiber(
   tag: RootTag,
   isStrictMode: boolean,

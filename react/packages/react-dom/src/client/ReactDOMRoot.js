@@ -135,10 +135,17 @@ ReactDOMHydrationRoot.prototype.unmount = ReactDOMRoot.prototype.unmount = funct
   }
 };
 
+/**
+ * 创建宿主树的根节点
+ * @param {*} container   宿主树根节点容器，必须是一个合法的DOM元素
+ * @param {*} options 可选的配置项，可以设置一些React根节点的选项，例如是否启用严格模式、是否启用并发模式等
+ * @returns
+ */
 export function createRoot(
   container: Element | Document | DocumentFragment,
   options?: CreateRootOptions,
 ): RootType {
+  // 检查是否上一个有效的DOM元素
   if (!isValidContainer(container)) {
     throw new Error('createRoot(...): Target container is not a DOM element.');
   }
@@ -151,6 +158,7 @@ export function createRoot(
   let onRecoverableError = defaultOnRecoverableError;
   let transitionCallbacks = null;
 
+  // 解析 options 参数，设置一些 React 根节点的选项
   if (options !== null && options !== undefined) {
     if (options.unstable_strictMode === true) {
       isStrictMode = true;
@@ -191,6 +199,7 @@ export function createRoot(
     container.nodeType === COMMENT_NODE
       ? (container.parentNode: any)
       : container;
+  //为根节点容器节点添加事件监听器
   listenToAllSupportedEvents(rootContainerElement);
 
   return new ReactDOMRoot(root);
@@ -284,6 +293,11 @@ export function hydrateRoot(
   return new ReactDOMHydrationRoot(root);
 }
 
+/**
+ * 检查一个DOM节点是否可以作为React渲染的容器
+ * @param {*} node
+ * @returns
+ */
 export function isValidContainer(node: any): boolean {
   return !!(
     node &&
